@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Console - Direct to Vet</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #e2001a 0%, #b8001a 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .logo {
+            height: 40px;
+            filter: brightness(0) invert(1);
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        .header-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* Config Panel */
+        .config-panel {
+            background: white;
+            padding: 15px 30px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .config-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .config-group label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+        .config-group select, .config-group input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            min-width: 180px;
+        }
+        .config-group select:focus, .config-group input:focus {
+            outline: none;
+            border-color: #e2001a;
+        }
+        .btn-refresh {
+            background: #e2001a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-refresh:hover { background: #c8001a; }
+
+        /* Main Container */
+        .main-container {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        /* Chat Panel */
+        .chat-panel {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .chat-header.vet { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); }
+        .chat-header.client { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); }
+        .chat-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .chat-avatar.vet { background: #4caf50; color: white; }
+        .chat-avatar.client { background: #2196f3; color: white; }
+        .chat-info h3 {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 2px;
+        }
+        .chat-info span {
+            font-size: 12px;
+            color: #888;
+        }
+        .chat-status {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: #4caf50;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #4caf50;
+            border-radius: 50%;
+        }
+
+        /* Messages */
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            position: relative;
+        }
+        .message.user {
+            align-self: flex-end;
+            background: #e2001a;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message.agent {
+            align-self: flex-start;
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+        .message-time {
+            font-size: 10px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        .message.user .message-time { text-align: right; }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 15px;
+            align-self: flex-start;
+        }
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #ccc;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        /* Input */
+        .chat-input {
+            padding: 15px 20px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            background: white;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+        }
+        .chat-input input:focus {
+            border-color: #e2001a;
+        }
+        .chat-input button {
+            background: #e2001a;
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: background 0.2s;
+        }
+        .chat-input button:hover { background: #c8001a; }
+        .chat-input button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Footer */
+        .footer {
+            background: white;
+            padding: 10px 30px;
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <img src="https://1000logos.net/wp-content/uploads/2020/07/Royal-Canin-Logo.png" alt="Royal Canin" class="logo">
+            <h1>Direct to Vet - Test Console</h1>
+        </div>
+        <span class="header-badge">Development Mode</span>
+    </div>
+
+    <div class="config-panel">
+        <div class="config-group">
+            <label>Veterinaria:</label>
+            <select id="vetSelect">
+                <option value="">Cargando...</option>
+            </select>
+        </div>
+        <div class="config-group">
+            <label>Cliente (tel):</label>
+            <input type="text" id="clientPhone" placeholder="+5491123456789" value="+5491199999999">
+        </div>
+        <button class="btn-refresh" onclick="loadVets()">
+            <span>&#8635;</span> Recargar
+        </button>
+        <button class="btn-refresh" onclick="clearChats()" style="background: #666;">
+            <span>&#128465;</span> Limpiar chats
+        </button>
+    </div>
+
+    <div class="main-container">
+        <!-- VET Chat -->
+        <div class="chat-panel">
+            <div class="chat-header vet">
+                <div class="chat-avatar vet">&#128105;&#8205;&#9877;</div>
+                <div class="chat-info">
+                    <h3 id="vetName">Veterinaria</h3>
+                    <span id="vetId">Seleccioná una veterinaria</span>
+                </div>
+                <div class="chat-status">
+                    <span class="status-dot"></span>
+                    Agente VET
+                </div>
+            </div>
+            <div class="chat-messages" id="vetMessages">
+                <div class="message agent">
+                    <div>Seleccioná una veterinaria arriba para comenzar a probar.</div>
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="vetInput" placeholder="Escribí como veterinario..." onkeypress="handleKeyPress(event, 'vet')">
+                <button onclick="sendMessage('vet')" id="vetSendBtn">&#10148;</button>
+            </div>
+        </div>
+
+        <!-- CLIENT Chat -->
+        <div class="chat-panel">
+            <div class="chat-header client">
+                <div class="chat-avatar client">&#128100;</div>
+                <div class="chat-info">
+                    <h3>Cliente Final</h3>
+                    <span id="clientInfo">+5491199999999</span>
+                </div>
+                <div class="chat-status">
+                    <span class="status-dot"></span>
+                    Agente CLIENTE
+                </div>
+            </div>
+            <div class="chat-messages" id="clientMessages">
+                <div class="message agent">
+                    <div>Escribí un mensaje para probar el flujo del cliente.</div>
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="clientInput" placeholder="Escribí como cliente..." onkeypress="handleKeyPress(event, 'client')">
+                <button onclick="sendMessage('client')" id="clientSendBtn">&#10148;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Direct to Vet - Test Console | Solo para desarrollo | Powered by Royal Canin
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let selectedVet = null;
+
+        // Load vets on page load
+        document.addEventListener('DOMContentLoaded', loadVets);
+
+        async function loadVets() {
+            try {
+                const response = await fetch(`${API_BASE}/test/vets`);
+                const data = await response.json();
+
+                const select = document.getElementById('vetSelect');
+                select.innerHTML = '<option value="">-- Seleccionar veterinaria --</option>';
+
+                data.vets.forEach(vet => {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify(vet);
+                    option.textContent = `${vet.name} (${vet.vet_id})`;
+                    select.appendChild(option);
+                });
+
+                select.onchange = () => {
+                    if (select.value) {
+                        selectedVet = JSON.parse(select.value);
+                        document.getElementById('vetName').textContent = selectedVet.name;
+                        document.getElementById('vetId').textContent = `ID: ${selectedVet.vet_id} | Tel: ${selectedVet.whatsapp_e164}`;
+
+                        // Clear vet chat and add welcome
+                        document.getElementById('vetMessages').innerHTML = `
+                            <div class="message agent">
+                                <div>Conectado como <strong>${selectedVet.name}</strong>. Empezá a chatear!</div>
+                                <div class="message-time">${new Date().toLocaleTimeString()}</div>
+                            </div>
+                        `;
+                    }
+                };
+            } catch (error) {
+                console.error('Error loading vets:', error);
+                document.getElementById('vetSelect').innerHTML = '<option value="">Error cargando vets</option>';
+            }
+        }
+
+        function handleKeyPress(event, type) {
+            if (event.key === 'Enter') {
+                sendMessage(type);
+            }
+        }
+
+        async function sendMessage(type) {
+            const input = document.getElementById(`${type}Input`);
+            const messages = document.getElementById(`${type}Messages`);
+            const sendBtn = document.getElementById(`${type}SendBtn`);
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            if (type === 'vet' && !selectedVet) {
+                alert('Seleccioná una veterinaria primero');
+                return;
+            }
+
+            // Add user message
+            addMessage(messages, message, 'user');
+            input.value = '';
+            sendBtn.disabled = true;
+
+            // Show typing indicator
+            const typingId = showTyping(messages);
+
+            try {
+                const endpoint = type === 'vet' ? '/test/vet/message' : '/test/client/message';
+                const body = type === 'vet'
+                    ? { vet_id: selectedVet.vet_id, phone: selectedVet.whatsapp_e164, message }
+                    : { phone: document.getElementById('clientPhone').value, message };
+
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await response.json();
+
+                // Remove typing indicator
+                removeTyping(typingId);
+
+                // Add agent response
+                addMessage(messages, data.response || data.error || 'Sin respuesta', 'agent');
+
+            } catch (error) {
+                removeTyping(typingId);
+                addMessage(messages, `Error: ${error.message}`, 'agent');
+            }
+
+            sendBtn.disabled = false;
+            input.focus();
+        }
+
+        function addMessage(container, text, type) {
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.innerHTML = `
+                <div>${formatMessage(text)}</div>
+                <div class="message-time">${new Date().toLocaleTimeString()}</div>
+            `;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function formatMessage(text) {
+            // Convert markdown-style formatting
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br>');
+        }
+
+        let typingCounter = 0;
+        function showTyping(container) {
+            const id = `typing-${++typingCounter}`;
+            const div = document.createElement('div');
+            div.className = 'typing-indicator';
+            div.id = id;
+            div.innerHTML = '<span></span><span></span><span></span>';
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function removeTyping(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function clearChats() {
+            document.getElementById('vetMessages').innerHTML = `
+                <div class="message agent">
+                    <div>Chat limpiado. Empezá de nuevo!</div>
+                </div>
+            `;
+            document.getElementById('clientMessages').innerHTML = `
+                <div class="message agent">
+                    <div>Chat limpiado. Empezá de nuevo!</div>
+                </div>
+            `;
+        }
+
+        // Update client phone display
+        document.getElementById('clientPhone').addEventListener('input', function() {
+            document.getElementById('clientInfo').textContent = this.value || 'Sin telefono';
+        });
+    </script>
+</body>
+</html>

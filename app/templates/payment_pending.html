@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pago pendiente - Direct to Vet</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .header { width: 100%; max-width: 600px; text-align: center; margin-bottom: 20px; }
+        .logo { max-width: 180px; height: auto; margin-bottom: 10px; }
+        .banner {
+            width: 100%; max-width: 600px; border-radius: 16px;
+            overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 30px;
+        }
+        .banner img { width: 100%; height: auto; display: block; }
+        .card {
+            background: white; border-radius: 16px; padding: 40px;
+            max-width: 500px; width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center;
+        }
+        .icon {
+            width: 80px; height: 80px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px; font-size: 40px;
+            background: #fff3e0; color: #ff9800;
+        }
+        h1 { color: #333; font-size: 24px; margin-bottom: 15px; font-weight: 600; }
+        .message { color: #666; font-size: 16px; line-height: 1.6; margin-bottom: 25px; }
+        .details {
+            background: #f5f7fa; border-radius: 8px; padding: 20px;
+            margin-bottom: 25px; text-align: left;
+        }
+        .details-row {
+            display: flex; justify-content: space-between;
+            padding: 10px 0; border-bottom: 1px solid #e0e0e0;
+        }
+        .details-row:last-child { border-bottom: none; }
+        .details-label { color: #888; font-size: 14px; }
+        .details-value { color: #333; font-size: 14px; font-weight: 500; }
+        .footer { margin-top: 30px; color: #999; font-size: 12px; text-align: center; }
+        .powered-by { margin-top: 20px; font-size: 11px; color: #bbb; }
+        .info-note {
+            background: #fff3e0; border-radius: 8px; padding: 15px;
+            margin-top: 20px; font-size: 14px; color: #e65100;
+        }
+        @media (max-width: 480px) { .card { padding: 25px; } h1 { font-size: 20px; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://1000logos.net/wp-content/uploads/2020/07/Royal-Canin-Logo.png" alt="Royal Canin" class="logo">
+    </div>
+
+    <div class="banner">
+        <img src="https://p1.aprimocdn.net/marspetcare/f741f739-889f-4083-94d6-b30100a278d1/f741f739-889f-4083-94d6-b30100a278d1_DownloadAsPng.png?w=960&width=960&auto=webp&format=jpg&optimize=medium&crop=2%3A1%2Coffset-x19%2Coffset-y52" alt="Royal Canin">
+    </div>
+
+    <div class="card">
+        <div class="icon">&#8987;</div>
+        <h1>Pago pendiente</h1>
+        <p class="message">
+            Tu pago está siendo procesado. Esto puede tomar unos minutos.
+        </p>
+
+        <div class="details">
+            <div class="details-row">
+                <span class="details-label">Pedido</span>
+                <span class="details-value">{{order_id}}</span>
+            </div>
+            <div class="details-row">
+                <span class="details-label">Monto</span>
+                <span class="details-value">{{amount}}</span>
+            </div>
+            <div class="details-row">
+                <span class="details-label">Estado</span>
+                <span class="details-value" style="color: #ff9800;">Procesando</span>
+            </div>
+        </div>
+
+        <div class="info-note">
+            Te notificaremos por WhatsApp cuando se confirme el pago.
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Direct to Vet - Plataforma de ventas para veterinarias</p>
+        <p class="powered-by">Powered by Royal Canin</p>
+    </div>
+</body>
+</html>

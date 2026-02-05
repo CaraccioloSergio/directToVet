@@ -1,0 +1,36 @@
+# Google ADK
+google-adk>=0.3.0
+google-genai>=1.0.0
+
+# Web Framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# HTTP Client
+httpx>=0.26.0
+
+# Data Validation
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Google Sheets
+gspread>=6.0.0
+google-auth>=2.27.0
+
+# Twilio (WhatsApp)
+twilio>=9.0.0
+
+# Phone number parsing
+phonenumbers>=8.13.0
+
+# Email (SendGrid)
+sendgrid>=6.11.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# Google Cloud (prod)
+google-cloud-secret-manager>=2.18.0
+
+# Utilities
+python-dateutil>=2.8.2
