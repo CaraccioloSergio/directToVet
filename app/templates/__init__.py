@@ -37,9 +37,9 @@ def render_template(template_name: str, **kwargs) -> str:
     return html
 
 
-def get_oauth_success_html() -> str:
+def get_oauth_success_html(whatsapp_number: str = "") -> str:
     """Retorna HTML para OAuth exitoso."""
-    return render_template("oauth_success.html")
+    return render_template("oauth_success.html", whatsapp_number=whatsapp_number)
 
 
 def get_oauth_error_html(error_message: str = "Error desconocido") -> str:
@@ -47,21 +47,23 @@ def get_oauth_error_html(error_message: str = "Error desconocido") -> str:
     return render_template("oauth_error.html", error_message=error_message)
 
 
-def get_payment_success_html(order_id: str = "", amount: str = "") -> str:
+def get_payment_success_html(order_id: str = "", amount: str = "", whatsapp_number: str = "") -> str:
     """Retorna HTML para pago exitoso."""
     return render_template(
         "payment_success.html",
         order_id=order_id,
         amount=amount,
+        whatsapp_number=whatsapp_number,
     )
 
 
-def get_payment_pending_html(order_id: str = "", amount: str = "") -> str:
+def get_payment_pending_html(order_id: str = "", amount: str = "", whatsapp_number: str = "") -> str:
     """Retorna HTML para pago pendiente."""
     return render_template(
         "payment_pending.html",
         order_id=order_id,
         amount=amount,
+        whatsapp_number=whatsapp_number,
     )
 
 

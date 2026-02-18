@@ -38,10 +38,17 @@
         .highlight { color: #e2001a; font-weight: 600; }
         .footer { margin-top: 30px; color: #999; font-size: 12px; text-align: center; }
         .powered-by { margin-top: 20px; font-size: 11px; color: #bbb; }
-        .whatsapp-note {
+        .wa-redirect {
             background: #e8f5e9; border-radius: 8px; padding: 15px;
-            margin-top: 20px; font-size: 14px; color: #2e7d32;
+            margin-top: 20px; text-align: center;
         }
+        .wa-redirect .countdown { color: #666; font-size: 13px; margin-bottom: 10px; }
+        .wa-btn {
+            display: inline-block; background: #25D366; color: white;
+            text-decoration: none; padding: 12px 24px; border-radius: 8px;
+            font-size: 16px; font-weight: 600;
+        }
+        .wa-btn:hover { background: #1da851; }
         @media (max-width: 480px) { .card { padding: 25px; } h1 { font-size: 20px; } }
     </style>
 </head>
@@ -63,10 +70,27 @@
         <p class="message">
             Ahora podés generar links de pago para tus clientes directamente desde WhatsApp.
         </p>
-        <div class="whatsapp-note">
-            Ya podés volver a WhatsApp y continuar usando el asistente.
+        <div class="wa-redirect">
+            <p class="countdown">Volviendo a WhatsApp en <span id="countdown">5</span>...</p>
+            <a href="https://wa.me/{{whatsapp_number}}" class="wa-btn" id="wa-link">Volver a WhatsApp</a>
         </div>
     </div>
+
+    <script>
+        (function() {
+            var seconds = 5;
+            var el = document.getElementById('countdown');
+            var link = document.getElementById('wa-link');
+            var timer = setInterval(function() {
+                seconds--;
+                el.textContent = seconds;
+                if (seconds <= 0) {
+                    clearInterval(timer);
+                    window.location.href = link.href;
+                }
+            }, 1000);
+        })();
+    </script>
 
     <div class="footer">
         <p>Direct to Vet - Plataforma de ventas para veterinarias</p>

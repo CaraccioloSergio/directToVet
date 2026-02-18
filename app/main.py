@@ -36,6 +36,12 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+def _get_wa_number() -> str:
+    """Extrae solo los dígitos del número de WhatsApp de Twilio para usar en wa.me links."""
+    raw = settings.twilio_whatsapp_number or ""
+    return raw.replace("whatsapp:", "").replace("+", "").replace(" ", "").strip()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle manager para la aplicación."""
@@ -154,7 +160,7 @@ async def mp_oauth_callback(code: str = None, state: str = None, error: str = No
 
     if result["status"] == "success":
         # Página de éxito con branding
-        return HTMLResponse(content=get_oauth_success_html())
+        return HTMLResponse(content=get_oauth_success_html(whatsapp_number=_get_wa_number()))
     else:
         error_msg = result.get("message", "Error al conectar Mercado Pago")
         return HTMLResponse(
@@ -202,6 +208,7 @@ async def payment_success(
         content=get_payment_success_html(
             order_id=order_id or "N/A",
             amount=amount,
+            whatsapp_number=_get_wa_number(),
         )
     )
 
@@ -235,6 +242,7 @@ async def payment_pending(
         content=get_payment_pending_html(
             order_id=order_id or "N/A",
             amount=amount,
+            whatsapp_number=_get_wa_number(),
         )
     )
 
@@ -268,7 +276,7 @@ async def test_oauth_success_page():
     """Preview de la página de OAuth exitoso."""
     if settings.is_production:
         return JSONResponse(status_code=403, content={"error": "Not available in production"})
-    return HTMLResponse(content=get_oauth_success_html())
+    return HTMLResponse(content=get_oauth_success_html(whatsapp_number=_get_wa_number()))
 
 
 @app.get("/test/pages/oauth-error")
@@ -284,7 +292,7 @@ async def test_payment_success_page():
     """Preview de la página de pago exitoso."""
     if settings.is_production:
         return JSONResponse(status_code=403, content={"error": "Not available in production"})
-    return HTMLResponse(content=get_payment_success_html(order_id="ORD-TEST123", amount="$15,000.00 ARS"))
+    return HTMLResponse(content=get_payment_success_html(order_id="ORD-TEST123", amount="$15,000.00 ARS", whatsapp_number=_get_wa_number()))
 
 
 @app.get("/test/pages/payment-pending")
@@ -292,7 +300,7 @@ async def test_payment_pending_page():
     """Preview de la página de pago pendiente."""
     if settings.is_production:
         return JSONResponse(status_code=403, content={"error": "Not available in production"})
-    return HTMLResponse(content=get_payment_pending_html(order_id="ORD-TEST123", amount="$15,000.00 ARS"))
+    return HTMLResponse(content=get_payment_pending_html(order_id="ORD-TEST123", amount="$15,000.00 ARS", whatsapp_number=_get_wa_number()))
 
 
 @app.get("/test/pages/payment-error")

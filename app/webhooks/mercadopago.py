@@ -336,12 +336,22 @@ async def _handle_approved_payment(
             total_amount=total_amount,
         )
 
-        # 2. Enviar WhatsApp al cliente
+        # 2. Enviar WhatsApp al cliente con detalle del pedido
+        if order.delivery.mode.value == "DELIVERY":
+            delivery_info = f"Tu pedido será enviado a {order.delivery.address or 'tu domicilio'}.\nTe avisamos cuando esté en camino!"
+        else:
+            delivery_info = f"Retirá tu pedido en {vet.name}.\nTe avisamos cuando esté listo!"
+
+        customer_status_message = (
+            f"Tu pago de {total_amount} por el pedido *{order_id}* fue confirmado.\n\n"
+            f"{delivery_info}"
+        )
+
         send_order_status_to_customer(
             customer_phone=order.customer.whatsapp_e164,
             customer_name=order.customer.name,
             order_id=order_id,
-            status_message="Tu pago fue recibido. Gracias por tu compra!",
+            status_message=customer_status_message,
         )
 
         # 3. Enviar email operativo
