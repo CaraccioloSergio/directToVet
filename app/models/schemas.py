@@ -93,7 +93,9 @@ class VetContext(BaseModel):
     @field_validator("whatsapp_e164")
     @classmethod
     def validate_phone(cls, v: str) -> str:
-        """Valida formato E.164 del teléfono."""
+        """Valida formato E.164 del teléfono. Permite vacío o '-' para vets sin número."""
+        if not v or v.strip() in ("-", "N/A", "n/a"):
+            return ""
         try:
             parsed = phonenumbers.parse(v, "AR")
             if not phonenumbers.is_valid_number(parsed):

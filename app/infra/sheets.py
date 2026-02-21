@@ -11,6 +11,23 @@ from decimal import Decimal
 from typing import Optional
 from functools import lru_cache
 
+
+def _parse_datetime(value: str) -> datetime:
+    """Parsea un string de fecha tolerando formatos sin zero-padding (ej: '2026-02-21 1:35:49')."""
+    if not value:
+        return datetime.now()
+    for fmt in (
+        "%Y-%m-%dT%H:%M:%S.%f",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+    ):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    return datetime.now()
+
 import gspread
 from google.oauth2.service_account import Credentials
 
@@ -1027,8 +1044,8 @@ def _parse_order_row(row: dict) -> Order:
         mp_payment_id=str(row.get("mp_payment_id", "")) or None,
         mp_status=mp_status,
         external_reference=str(row.get("external_reference", "")) or None,
-        created_at=datetime.fromisoformat(row.get("created_at", datetime.utcnow().isoformat())),
-        updated_at=datetime.fromisoformat(row.get("updated_at", datetime.utcnow().isoformat())),
+        created_at=_parse_datetime(str(row.get("created_at", ""))),
+        updated_at=_parse_datetime(str(row.get("updated_at", ""))),
     )
 
 
