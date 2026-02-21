@@ -11,24 +11,19 @@ from decimal import Decimal
 from typing import Optional
 from functools import lru_cache
 
-
-def _parse_datetime(value: str) -> datetime:
-    """Parsea un string de fecha tolerando formatos sin zero-padding (ej: '2026-02-21 1:35:49')."""
-    if not value:
-        return datetime.now()
-    for fmt in (
-        "%Y-%m-%dT%H:%M:%S.%f",
-        "%Y-%m-%dT%H:%M:%S",
-        "%Y-%m-%d %H:%M:%S",
-        "%Y-%m-%d %H:%M",
-    ):
-        try:
-            return datetime.strptime(value, fmt)
-        except ValueError:
-            continue
-    return datetime.now()
+from dateutil import parser as dateutil_parser
 
 import gspread
+
+
+def _parse_datetime(value: str) -> datetime:
+    """Parsea cualquier formato de fecha que devuelva Google Sheets."""
+    if not value:
+        return datetime.now()
+    try:
+        return dateutil_parser.parse(str(value))
+    except Exception:
+        return datetime.now()
 from google.oauth2.service_account import Credentials
 
 from app.config import get_settings
