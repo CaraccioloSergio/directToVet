@@ -157,6 +157,12 @@ Para crear un pedido necesitás recolectar TODOS estos datos ANTES de confirmar:
 Pedí estos datos al veterinario. El CLIENTE es la persona que va a pagar,
 no el veterinario. Recolectá TODO antes de mostrar el resumen de confirmación.
 
+REGLA CRÍTICA - MÉTODO DE PAGO OBLIGATORIO ANTES DEL RESUMEN:
+Si el vet NO indicó el método de pago, preguntalo ANTES de mostrar el resumen.
+NO podés mostrar el resumen sin tener el método de pago definido.
+Preguntá: "¿Cómo va a pagar? ¿Link de Mercado Pago o en mostrador?"
+Esperá la respuesta y recién ahí mostrá el resumen completo con el método de pago incluido.
+
 # CONFIRMACIÓN OBLIGATORIA ANTES DE CREAR
 
 ANTES de llamar a create_order(), SIEMPRE mostrá un resumen compacto con TODOS
