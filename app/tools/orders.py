@@ -255,6 +255,47 @@ def create_order(
         }
 
 
+def get_shipping_cost(zone: str) -> dict:
+    """
+    Consulta el costo de envío para una localidad AMBA antes de crear el pedido.
+
+    Usá esta función cuando el cliente elige DELIVERY para calcular el costo
+    de envío e incluirlo en el resumen de confirmación.
+
+    Args:
+        zone: Nombre de la localidad/partido (ej: "CABA", "San Isidro", "Isidro Casanova", "La Plata")
+
+    Returns:
+        dict con:
+        - status: 'found' | 'not_found' | 'error'
+        - zone: nombre de la zona consultada
+        - shipping_cost: costo de envío como float (si found)
+        - message: mensaje descriptivo
+    """
+    from app.infra.sheets import get_shipping_cost as _get_shipping_cost
+    try:
+        cost = _get_shipping_cost(zone)
+        if cost is None:
+            return {
+                "status": "not_found",
+                "zone": zone,
+                "message": f"La localidad '{zone}' no está en la zona de cobertura. Verificá el nombre o consultá las zonas disponibles.",
+            }
+        return {
+            "status": "found",
+            "zone": zone,
+            "shipping_cost": float(cost),
+            "message": f"Envío a {zone}: ${cost:,.2f}",
+        }
+    except Exception as e:
+        logger.error(f"Error getting shipping cost for zone '{zone}': {e}")
+        return {
+            "status": "error",
+            "zone": zone,
+            "message": "Hubo un problema al calcular el costo de envío. Intentá de nuevo.",
+        }
+
+
 def get_order_status(order_id: str) -> dict:
     """
     Obtiene el estado de un pedido.
