@@ -17,7 +17,7 @@ from app.infra.sheets import (
     set_order_payment_method as sheets_set_payment_method,
     log_event,
     create_customer,
-    get_shipping_cost,
+    get_shipping_cost as sheets_get_shipping_cost,
 )
 from app.infra.email_service import send_order_created_notification
 from app.models.schemas import (
@@ -134,7 +134,7 @@ def create_order(
         # Calcular costo de envío
         shipping_cost = Decimal("0")
         if mode == DeliveryMode.DELIVERY and delivery_zone:
-            shipping_cost_result = get_shipping_cost(delivery_zone)
+            shipping_cost_result = sheets_get_shipping_cost(delivery_zone)
             if shipping_cost_result is None:
                 return {
                     "status": "validation_error",
@@ -272,9 +272,8 @@ def get_shipping_cost(zone: str) -> dict:
         - shipping_cost: costo de envío como float (si found)
         - message: mensaje descriptivo
     """
-    from app.infra.sheets import get_shipping_cost as _get_shipping_cost
     try:
-        cost = _get_shipping_cost(zone)
+        cost = sheets_get_shipping_cost(zone)
         if cost is None:
             return {
                 "status": "not_found",
