@@ -10,7 +10,7 @@ from google.genai import Client  # type: ignore
 from app.tools.identity import identify_veterinarian
 from app.tools.catalog import search_catalog
 from app.tools.cart import add_to_cart, view_cart, clear_cart
-from app.tools.orders import create_order, get_order_status, cancel_order, set_payment_method, get_shipping_cost
+from app.tools.orders import create_order, get_order_status, cancel_order, set_payment_method, get_shipping_cost, confirm_at_vet_payment
 from app.tools.customers import search_customer, search_order, register_customer, update_customer_info
 from app.tools.oauth_mp import start_mp_oauth, check_mp_connection
 from app.tools.payments import create_payment_link, get_payment_link_for_order
@@ -61,6 +61,7 @@ root_agent = Agent(
         search_order,
         set_payment_method,
         get_shipping_cost,
+        confirm_at_vet_payment,
 
         # OAuth Mercado Pago
         start_mp_oauth,

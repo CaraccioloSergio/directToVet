@@ -454,6 +454,73 @@ def cancel_order(
         }
 
 
+def confirm_at_vet_payment(order_id: str) -> dict:
+    """
+    Registra que el cliente pagó en el mostrador de la veterinaria.
+
+    Usá esta función cuando el vet confirma que el cliente ya abonó en el
+    mostrador (pedido AT_VET). Actualiza el estado del pedido a PAYMENT_APPROVED.
+
+    Args:
+        order_id: ID del pedido (ej: "ORD-ABC123")
+
+    Returns:
+        dict con:
+        - status: 'confirmed' | 'not_found' | 'invalid_state' | 'error'
+        - message: mensaje descriptivo
+        - order_id: ID del pedido
+    """
+    try:
+        order = get_order_by_id(order_id)
+        if order is None:
+            return {
+                "status": "not_found",
+                "message": f"No encontré el pedido {order_id}.",
+            }
+
+        # Solo se puede confirmar si está en PAYMENT_AT_VET
+        if order.status != OrderStatus.PAYMENT_AT_VET:
+            return {
+                "status": "invalid_state",
+                "message": (
+                    f"El pedido {order_id} está en estado '{order.status.value}', "
+                    "no en espera de pago en mostrador."
+                ),
+            }
+
+        if not sheets_update_order_status(order_id, OrderStatus.PAYMENT_APPROVED):
+            return {
+                "status": "error",
+                "message": "Hubo un problema al registrar el pago. Intentá de nuevo.",
+            }
+
+        log_event(
+            event_type=EventType.ORDER_STATUS_CHANGED,
+            order_id=order_id,
+            vet_id=order.vet_id,
+            payload={
+                "old_status": OrderStatus.PAYMENT_AT_VET.value,
+                "new_status": OrderStatus.PAYMENT_APPROVED.value,
+                "source": "agent_at_vet_confirm",
+            },
+        )
+
+        logger.info(f"Order {order_id} AT_VET payment confirmed")
+
+        return {
+            "status": "confirmed",
+            "message": f"Listo, el pago del pedido {order_id} fue registrado.",
+            "order_id": order_id,
+        }
+
+    except Exception as e:
+        logger.error(f"Error confirming AT_VET payment for {order_id}: {e}")
+        return {
+            "status": "error",
+            "message": "Hubo un problema al registrar el pago.",
+        }
+
+
 def update_order_status(
     order_id: str,
     new_status: str,

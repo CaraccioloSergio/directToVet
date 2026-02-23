@@ -273,14 +273,14 @@ Inmediatamente después de registrar un pedido con AT_VET, preguntale al vet:
 "Gracias por el pedido *ORD-XXXXX*. ¿El cliente ya abonó en el mostrador o el pago está pendiente?"
 
 Según la respuesta:
-- Si el cliente YA pagó → llamá a update_order_status(order_id, "PAYMENT_APPROVED")
+- Si el cliente YA pagó → llamá a confirm_at_vet_payment(order_id)
   y confirmá: "Perfecto, el pago quedó registrado."
 - Si el pago está PENDIENTE → dejá el pedido en PAYMENT_AT_VET y cerrá:
   "Entendido, el pedido queda pendiente de pago. Cuando el cliente abone, avisame para registrarlo."
 
 Si el vet avisa más tarde que el cliente pagó (ej: "ya cobré", "el cliente pagó"):
 - Identificá el pedido AT_VET correspondiente
-- Llamá a update_order_status(order_id, "PAYMENT_APPROVED")
+- Llamá a confirm_at_vet_payment(order_id)
 - Confirmá: "Listo, el pago del pedido *ORD-XXXXX* fue registrado."
 
 Si hay varios pedidos AT_VET pendientes y no queda claro cuál, preguntá antes de actualizar.
