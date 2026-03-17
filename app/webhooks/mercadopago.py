@@ -23,7 +23,7 @@ from app.infra.email_service import send_payment_approved_notification
 from app.tools.oauth_mp import ensure_valid_mp_token
 from app.tools.messaging import (
     send_payment_confirmation_to_vet,
-    send_order_status_to_customer,
+    send_payment_confirmation_to_customer,
 )
 from app.models.schemas import OrderStatus, MPPaymentStatus, EventType
 
@@ -336,22 +336,23 @@ async def _handle_approved_payment(
             total_amount=total_amount,
         )
 
-        # 2. Enviar WhatsApp al cliente con detalle del pedido
+        # 2. Enviar WhatsApp al cliente con confirmación de pago
         if order.delivery.mode.value == "DELIVERY":
-            delivery_info = f"Tu pedido será enviado a {order.delivery.address or 'tu domicilio'}.\nTe avisamos cuando esté en camino!"
+            delivery_description = f"Envío a {order.delivery.address or 'tu domicilio'}"
+            shipping_cost_str = f"${order.shipping_cost:,.2f} ARS" if order.shipping_cost else "Sin cargo"
         else:
-            delivery_info = f"Retirá tu pedido en {vet.name}.\nTe avisamos cuando esté listo!"
+            delivery_description = "Retiro en veterinaria"
+            shipping_cost_str = "Sin cargo"
 
-        customer_status_message = (
-            f"Tu pago de {total_amount} por el pedido *{order_id}* fue confirmado.\n\n"
-            f"{delivery_info}"
-        )
-
-        send_order_status_to_customer(
+        send_payment_confirmation_to_customer(
             customer_phone=order.customer.whatsapp_e164,
             customer_name=order.customer.name,
             order_id=order_id,
-            status_message=customer_status_message,
+            delivery_description=delivery_description,
+            shipping_cost_str=shipping_cost_str,
+            payment_method_str="Mercado Pago",
+            total_amount=total_amount,
+            vet_name=vet.name,
         )
 
         # 3. Enviar email operativo

@@ -268,6 +268,93 @@ Gracias por tu compra!
         }
 
 
+def send_payment_confirmation_to_customer(
+    customer_phone: str,
+    customer_name: str,
+    order_id: str,
+    delivery_description: str,
+    shipping_cost_str: str,
+    payment_method_str: str,
+    total_amount: str,
+    vet_name: str,
+) -> dict:
+    """
+    Envía confirmación de pago al cliente usando el template aprobado por Meta.
+
+    Variables del template dtv_payment_confirmation_withoutpet:
+    {{1}} = customer_name
+    {{2}} = order_id
+    {{3}} = delivery_description  (ej: "Envío a Av. Corrientes 1234, CABA" o "Retiro en veterinaria")
+    {{4}} = shipping_cost_str     (ej: "$10.00 ARS" o "Sin cargo")
+    {{5}} = payment_method_str    (ej: "Mercado Pago" o "En mostrador")
+    {{6}} = total_amount          (ej: "$30.00 ARS")
+    {{7}} = vet_name
+
+    Se dispara tanto para pagos MP (desde el webhook) como AT_VET (desde el agente).
+    """
+    import json
+
+    if not settings.twilio_payment_confirmation_template_sid:
+        logger.warning("TWILIO_PAYMENT_CONFIRMATION_TEMPLATE_SID not configured, skipping customer confirmation")
+        return {
+            "status": "not_configured",
+            "message": "Template de confirmación no configurado.",
+        }
+
+    try:
+        client = _get_twilio_client()
+        if client is None:
+            return {
+                "status": "not_configured",
+                "message": "El servicio de WhatsApp no está configurado.",
+            }
+
+        if not customer_phone.startswith("+"):
+            customer_phone = f"+{customer_phone}"
+
+        from_whatsapp = f"whatsapp:{settings.twilio_whatsapp_number}"
+        to_whatsapp = f"whatsapp:{customer_phone}"
+
+        content_variables = json.dumps({
+            "1": customer_name,
+            "2": order_id,
+            "3": delivery_description,
+            "4": shipping_cost_str,
+            "5": payment_method_str,
+            "6": total_amount,
+            "7": vet_name,
+        })
+
+        message = client.messages.create(
+            from_=from_whatsapp,
+            to=to_whatsapp,
+            content_sid=settings.twilio_payment_confirmation_template_sid,
+            content_variables=content_variables,
+        )
+
+        logger.info(f"Payment confirmation sent to {customer_phone}: {message.sid}")
+        return {
+            "status": "sent",
+            "message": "Confirmación de pago enviada al cliente.",
+            "message_sid": message.sid,
+        }
+
+    except TwilioRestException as e:
+        logger.error(f"Twilio error sending payment confirmation: {e.code} - {e.msg}")
+        return {
+            "status": "error",
+            "message": "No se pudo enviar la confirmación de pago al cliente.",
+            "error_code": e.code,
+        }
+
+    except Exception as e:
+        logger.error(f"Error sending payment confirmation: {e}")
+        return {
+            "status": "error",
+            "message": "Hubo un problema al enviar la confirmación.",
+        }
+
+
 def send_payment_confirmation_to_vet(
     vet_phone: str,
     vet_name: str,

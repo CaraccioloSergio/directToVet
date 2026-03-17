@@ -56,7 +56,8 @@ class Settings(BaseSettings):
     twilio_account_sid: str = ""
     twilio_auth_token: str = ""
     twilio_whatsapp_number: str = ""
-    twilio_payment_template_sid: str = ""  # Content SID para template de pago (HX...)
+    twilio_payment_template_sid: str = ""  # Content SID para template de link de pago (HX...)
+    twilio_payment_confirmation_template_sid: str = ""  # Content SID para template de confirmación de pago (HX...)
 
     # ===========================================
     # Mercado Pago OAuth

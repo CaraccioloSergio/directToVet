@@ -12,6 +12,7 @@ from typing import Optional
 from app.infra.sheets import (
     create_order_record,
     get_order_by_id,
+    get_vet_by_id,
     update_order_preference,
     update_order_status as sheets_update_order_status,
     set_order_payment_method as sheets_set_payment_method,
@@ -31,7 +32,7 @@ from app.models.schemas import (
     EventType,
 )
 from app.tools.cart import get_cart_for_order, clear_cart
-from app.tools.messaging import send_order_status_to_customer
+from app.tools.messaging import send_order_status_to_customer, send_payment_confirmation_to_customer
 
 logger = logging.getLogger(__name__)
 
@@ -503,6 +504,30 @@ def confirm_at_vet_payment(order_id: str) -> dict:
                 "new_status": OrderStatus.PAYMENT_APPROVED.value,
                 "source": "agent_at_vet_confirm",
             },
+        )
+
+        # Notificar al cliente
+        vet = get_vet_by_id(order.vet_id)
+        vet_name = vet.name if vet else order.vet_id
+
+        if order.delivery.mode.value == "DELIVERY":
+            delivery_description = f"Envío a {order.delivery.address or 'tu domicilio'}"
+            shipping_cost_str = f"${order.shipping_cost:,.2f} ARS" if order.shipping_cost else "Sin cargo"
+        else:
+            delivery_description = "Retiro en veterinaria"
+            shipping_cost_str = "Sin cargo"
+
+        total_amount = f"${order.total_amount:,.2f} ARS"
+
+        send_payment_confirmation_to_customer(
+            customer_phone=order.customer.whatsapp_e164,
+            customer_name=order.customer.name,
+            order_id=order_id,
+            delivery_description=delivery_description,
+            shipping_cost_str=shipping_cost_str,
+            payment_method_str="En mostrador",
+            total_amount=total_amount,
+            vet_name=vet_name,
         )
 
         logger.info(f"Order {order_id} AT_VET payment confirmed")
