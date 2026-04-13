@@ -75,3 +75,8 @@ def get_payment_error_html(error_message: str = "El pago fue rechazado") -> str:
 def get_test_console_html() -> str:
     """Retorna HTML para la consola de testing."""
     return render_template("test_console.html")
+
+
+def get_backoffice_console_html() -> str:
+    """Retorna HTML para la consola de backoffice."""
+    return render_template("backoffice_console.html")

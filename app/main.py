@@ -4,11 +4,13 @@ Aplicación FastAPI principal de Direct to Vet.
 """
 
 import logging
+import secrets
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from app.config import get_settings
 from app.webhooks.twilio import router as twilio_router
@@ -22,6 +24,7 @@ from app.templates import (
     get_payment_pending_html,
     get_payment_error_html,
     get_test_console_html,
+    get_backoffice_console_html,
 )
 from app.infra.sheets import get_order_by_id, get_all_vets
 from pydantic import BaseModel
@@ -463,6 +466,137 @@ async def test_client_message(request: Request):
     except Exception as e:
         logger.error(f"Error in test client message: {e}")
         return {"error": str(e)}
+
+
+# =============================================================================
+# BACKOFFICE (protegido con basic auth — disponible en producción)
+# =============================================================================
+
+_basic_security = HTTPBasic()
+
+
+def _require_backoffice_auth(credentials: HTTPBasicCredentials = Depends(_basic_security)):
+    """Dependencia de autenticación básica para el backoffice."""
+    if not settings.backoffice_username or not settings.backoffice_password:
+        raise HTTPException(status_code=503, detail="Backoffice not configured")
+
+    valid_user = secrets.compare_digest(credentials.username, settings.backoffice_username)
+    valid_pass = secrets.compare_digest(credentials.password, settings.backoffice_password)
+
+    if not (valid_user and valid_pass):
+        raise HTTPException(
+            status_code=401,
+            detail="Credenciales incorrectas",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+
+@app.get("/backoffice")
+async def backoffice_console(username: str = Depends(_require_backoffice_auth)):
+    """Panel de administración backoffice."""
+    return HTMLResponse(content=get_backoffice_console_html())
+
+
+@app.get("/backoffice/vets")
+async def backoffice_get_vets(username: str = Depends(_require_backoffice_auth)):
+    """Lista de veterinarias para el backoffice."""
+    vets = get_all_vets()
+    return {
+        "vets": [
+            {
+                "vet_id": v.vet_id,
+                "name": v.name,
+                "whatsapp_e164": v.whatsapp_e164,
+                "mp_connected": v.mp_connected,
+                "contact_name": v.contact_name,
+            }
+            for v in vets
+        ]
+    }
+
+
+@app.post("/backoffice/vet/message")
+async def backoffice_vet_message(
+    request: Request,
+    username: str = Depends(_require_backoffice_auth),
+):
+    """Simula un mensaje de veterinario al agente (backoffice)."""
+    body = await request.json()
+    vet_id = body.get("vet_id")
+    phone = body.get("phone")
+    message = body.get("message")
+
+    if not vet_id or not message:
+        return JSONResponse(status_code=400, content={"error": "Missing vet_id or message"})
+
+    try:
+        from app.agent.router import process_incoming_message
+
+        response = await process_incoming_message(
+            phone_e164=phone,
+            message_text=message,
+        )
+        return {"response": response, "role": "vet"}
+    except Exception as e:
+        logger.error(f"Backoffice vet message error: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.post("/backoffice/client/message")
+async def backoffice_client_message(
+    request: Request,
+    username: str = Depends(_require_backoffice_auth),
+):
+    """Simula un mensaje de cliente al agente (backoffice)."""
+    body = await request.json()
+    phone = body.get("phone", "+5491199999999")
+    message = body.get("message")
+
+    if not message:
+        return JSONResponse(status_code=400, content={"error": "Missing message"})
+
+    try:
+        from app.agent.router import process_incoming_message
+
+        response = await process_incoming_message(
+            phone_e164=phone,
+            message_text=message,
+        )
+        return {"response": response, "role": "client"}
+    except Exception as e:
+        logger.error(f"Backoffice client message error: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+class BackofficePaymentLinkRequest(BaseModel):
+    """Request para generar link de pago desde backoffice."""
+    vet_id: str
+    order_id: str
+
+
+@app.post("/backoffice/payment-link")
+async def backoffice_payment_link(
+    body: BackofficePaymentLinkRequest,
+    username: str = Depends(_require_backoffice_auth),
+):
+    """Genera un link de pago de MP para un pedido (backoffice)."""
+    from app.tools.payments import create_payment_link
+
+    result = create_payment_link(vet_id=body.vet_id, order_id=body.order_id)
+    return result
+
+
+@app.post("/backoffice/oauth-link/{vet_id}")
+async def backoffice_oauth_link(
+    vet_id: str,
+    username: str = Depends(_require_backoffice_auth),
+):
+    """Genera un link OAuth de MP para que una veterinaria conecte su cuenta (backoffice)."""
+    from app.tools.oauth_mp import start_mp_oauth
+
+    result = start_mp_oauth(vet_id=vet_id)
+    return result
 
 
 # =============================================================================

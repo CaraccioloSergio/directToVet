@@ -90,6 +90,12 @@ class Settings(BaseSettings):
     local_token_store_path: str = "./data/tokens.json"
 
     # ===========================================
+    # Backoffice
+    # ===========================================
+    backoffice_username: str = ""
+    backoffice_password: str = ""
+
+    # ===========================================
     # Google Cloud (prod)
     # ===========================================
     gcp_project_id: Optional[str] = None

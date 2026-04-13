@@ -10,7 +10,7 @@
 |-------|-------|-----|
 | **Veterinario (Vet)** | WhatsApp | Opera el sistema, arma pedidos para sus clientes |
 | **Agente** | WhatsApp / Twilio | IA conversacional que asiste al vet |
-| **Cliente Final** | WhatsApp (solo recibe) | Dueño de mascota que recibe el link y paga |
+| **Cliente Final** | WhatsApp | Recibe link de pago y confirmaciones; puede consultar sus pedidos respondiendo al agente |
 | **Mercado Pago** | Webhook automático | Confirma pagos online |
 | **Distribuidora** | Sistema externo | Gestiona logística y actualiza estados de envío |
 
@@ -63,11 +63,11 @@ flowchart TD
     F -- No --> G[Vet da datos del cliente final:\nnombre, email, WhatsApp]
     G --> H{¿Cliente ya registrado?}
     H -- Sí --> I[Agente pre-carga datos\ndesde search_customer()]
-    H -- No --> J[Agente usa los datos provistos\ny puede registrarlo con register_customer()]
+    H -- No --> J[Agente usa los datos provistos\ny lo registra con register_customer()]
     I --> K[Vet define logística:\nPICKUP o DELIVERY]
     J --> K
     K -- PICKUP --> L[Sin costo de envío]
-    K -- DELIVERY --> M[Vet da dirección y localidad\nAgente calcula costo de envío]
+    K -- DELIVERY --> M[Vet da dirección y localidad\nAgente calcula costo con get_shipping_cost()]
     L --> N[Vet define método de pago:\nMercado Pago o En Mostrador]
     M --> N
 ```
@@ -76,7 +76,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([Datos completos]) --> B[Agente presenta resumen:\n- Cliente\n- Items con precios\n- Logística y costo\n- Método de pago\n- Total\n¿Lo confirmo?]
+    A([Datos completos + método de pago]) --> B[Agente presenta resumen:\n- Cliente\n- Items con precios\n- Logística y costo\n- Método de pago\n- Total\n¿Lo confirmo?]
     B --> C{Respuesta del vet}
     C -- Confirma\nsí / dale / ok --> D[Agente crea pedido\ncreate_order()]
     C -- Pide cambio --> E[Agente ajusta datos\ny vuelve a mostrar resumen]
@@ -98,7 +98,7 @@ flowchart TD
     B -- No --> C[Agente inicia OAuth\nver Flujo 2]
     C --> B
     B -- Sí --> D[Agente genera link de pago\ncreate_payment_link()]
-    D --> E[Agente envía link al CLIENTE\nsend_payment_link_to_customer()\nvía plantilla de WhatsApp aprobada]
+    D --> E[Agente envía link al CLIENTE\nsend_payment_link_to_customer()\nvía plantilla WhatsApp aprobada por Meta]
     E --> F[Agente confirma al vet:\n'Link enviado a Cliente al +549...']
     F --> G([Estado: PAYMENT_PENDING_MP])
     G --> H{¿Qué pasa en MP?}
@@ -106,8 +106,8 @@ flowchart TD
     H -- Pago rechazado --> J[Webhook notifica rechazo]
     H -- Sin respuesta --> K([Pedido queda pendiente])
     I --> L[Sistema actualiza estado:\nPAYMENT_APPROVED]
-    I --> M[Agente notifica al CLIENTE:\n'Tu pago fue confirmado 🎉']
-    I --> N[Agente notifica al VET:\n'Pago recibido para ORD-XXXXX']
+    I --> M[Sistema notifica al CLIENTE:\nPlantilla dtv_payment_confirmation_withoutpet\ncon detalles del pedido]
+    I --> N[Sistema notifica al VET:\n'Pago recibido para ORD-XXXXX']
     J --> O[Estado: PAYMENT_REJECTED]
     J --> P[Agente notifica al vet\npara gestionar reintento]
 ```
@@ -121,12 +121,14 @@ flowchart TD
     A([Pedido con método AT_VET]) --> B[Estado: PAYMENT_AT_VET]
     B --> C[Agente pregunta al vet:\n'¿El cliente ya abonó\no el pago está pendiente?']
     C --> D{Respuesta}
-    D -- Ya pagó --> E[Agente llama a\nupdate_order_status\nPAYMENT_APPROVED]
+    D -- Ya pagó --> E[Agente llama a\nconfirm_at_vet_payment()]
     D -- Pendiente --> F([Pedido queda en espera])
-    E --> G[Agente confirma:\n'Pago registrado ✓']
-    F --> H{Más adelante...}
-    H -- Vet avisa 'el cliente pagó' --> E
-    H -- Vet no avisa --> I([Pedido sigue pendiente])
+    E --> G[Estado: PAYMENT_APPROVED]
+    G --> H[Sistema notifica al CLIENTE:\nPlantilla dtv_payment_confirmation_withoutpet\ncon detalles del pedido]
+    H --> I[Agente confirma al vet:\n'Pago registrado ✓']
+    F --> J{Más adelante...}
+    J -- Vet avisa 'el cliente pagó' --> E
+    J -- Vet no avisa --> K([Pedido sigue pendiente])
 ```
 
 ---
@@ -159,11 +161,11 @@ flowchart TD
 
 | Evento | Notificado | Canal | Quién lo dispara |
 |--------|-----------|-------|-----------------|
-| Link de pago generado | Cliente Final | WhatsApp (plantilla) | Agente |
-| Pago aprobado (MP) | Cliente Final | WhatsApp | Sistema (webhook MP) |
-| Pago aprobado (MP) | Veterinario | WhatsApp | Sistema (webhook MP) |
-| Pedido cancelado | Cliente Final | WhatsApp | Sistema (cancel_order) |
-| Pago en mostrador confirmado | — | — | Vet confirma al agente |
+| Link de pago generado | Cliente Final | WhatsApp (plantilla Meta) | Agente |
+| Pago aprobado por MP | Cliente Final | WhatsApp (plantilla `dtv_payment_confirmation_withoutpet`) | Sistema (webhook MP) |
+| Pago aprobado por MP | Veterinario | WhatsApp (mensaje libre) | Sistema (webhook MP) |
+| Pago en mostrador confirmado | Cliente Final | WhatsApp (plantilla `dtv_payment_confirmation_withoutpet`) | Sistema (confirm_at_vet_payment) |
+| Pedido cancelado | Cliente Final | WhatsApp (mensaje libre) | Sistema (cancel_order) |
 
 ---
 
@@ -179,7 +181,7 @@ stateDiagram-v2
     PAYMENT_PENDING_MP --> PAYMENT_APPROVED : Webhook MP aprueba
     PAYMENT_PENDING_MP --> PAYMENT_REJECTED : Webhook MP rechaza
 
-    PAYMENT_AT_VET --> PAYMENT_APPROVED : Vet confirma al agente
+    PAYMENT_AT_VET --> PAYMENT_APPROVED : confirm_at_vet_payment()
 
     PAYMENT_APPROVED --> PREPARING : Distribuidora
     PREPARING --> READY_FOR_PICKUP : Distribuidora (PICKUP)
@@ -216,20 +218,25 @@ stateDiagram-v2
 │                          AGENTE (IA)                            │
 │  • Identifica al vet por número de WhatsApp                     │
 │  • Busca productos, clientes y pedidos                          │
+│  • Registra y actualiza datos de clientes                       │
 │  • Arma y confirma pedidos                                      │
 │  • Gestiona OAuth de MP                                         │
-│  • Genera y envía links de pago al cliente                      │
+│  • Genera y envía links de pago al cliente (plantilla Meta)     │
 │  • Pregunta al vet si el cliente pagó (AT_VET)                  │
 │  • Actualiza estados de pago                                    │
+│  • Atiende consultas de clientes (modo restringido)             │
 └─────────────────────────────────────────────────────────────────┘
-         │ WhatsApp (plantilla aprobada)        ▲ Webhook
+         │ WhatsApp (plantillas aprobadas)      ▲ Webhook
          ▼                                      │
 ┌────────────────────────┐          ┌───────────────────────────┐
 │    CLIENTE FINAL       │          │      MERCADO PAGO         │
 │  • Recibe link de pago │ ─paga──▶ │  • Procesa el pago        │
 │  • Recibe confirmación │          │  • Notifica al sistema    │
-│  • Recibe cancelación  │          │  • Cobra en cuenta del VET│
-└────────────────────────┘          └───────────────────────────┘
+│    de pago (plantilla) │          │  • Cobra en cuenta del VET│
+│  • Recibe cancelación  │          └───────────────────────────┘
+│  • Puede consultar     │
+│    sus pedidos         │
+└────────────────────────┘
 ```
 
 ---
@@ -240,4 +247,4 @@ stateDiagram-v2
 - [ ] **Notificación de logística al cliente**: ¿El agente notifica al cliente cuando su pedido está listo o en camino?
 - [ ] **Múltiples pedidos AT_VET pendientes**: ¿El agente debería listar pedidos pendientes de pago en mostrador de forma proactiva?
 - [ ] **Expiración de link MP**: ¿Qué hace el agente si el link de pago expiró y el cliente no pagó?
-- [ ] **Registro automático de cliente**: ¿Si el vet da datos de un cliente nuevo al crear el pedido, se registra automáticamente en la hoja de Customers?
+- [x] **Registro automático de cliente**: Al crear un pedido, el sistema registra automáticamente al cliente en la hoja de Customers si no existe (`create_customer()` dentro de `create_order()`).

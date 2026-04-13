@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backoffice - Direct to Vet</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===================== HEADER ===================== */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+            padding: 14px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .header-logo {
+            width: 36px;
+            height: 36px;
+            background: #e2001a;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 800;
+            color: white;
+        }
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .header h1 span {
+            color: #e2001a;
+        }
+        .header-badge {
+            background: rgba(226,0,26,0.25);
+            border: 1px solid rgba(226,0,26,0.4);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #ff6b7a;
+            font-weight: 500;
+        }
+
+        /* ===================== TABS ===================== */
+        .tabs-bar {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            padding: 0 30px;
+            flex-shrink: 0;
+        }
+        .tab-btn {
+            padding: 14px 22px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #888;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .tab-btn:hover { color: #555; }
+        .tab-btn.active {
+            color: #e2001a;
+            border-bottom-color: #e2001a;
+        }
+        .tab-badge {
+            background: #f0f0f0;
+            color: #888;
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+        .tab-btn.active .tab-badge {
+            background: #fde8ea;
+            color: #e2001a;
+        }
+
+        /* ===================== TAB PANELS ===================== */
+        .tab-panel { display: none; flex: 1; overflow: hidden; }
+        .tab-panel.active { display: flex; flex-direction: column; }
+
+        /* ===================== CONFIG ROW ===================== */
+        .config-row {
+            background: white;
+            padding: 12px 30px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+        .config-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .config-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .config-group select, .config-group input[type="text"] {
+            padding: 7px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            min-width: 200px;
+            background: #fafafa;
+        }
+        .config-group select:focus, .config-group input:focus {
+            outline: none;
+            border-color: #e2001a;
+            background: white;
+        }
+        .btn-sm {
+            padding: 7px 14px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.2s;
+        }
+        .btn-danger { background: #e2001a; color: white; }
+        .btn-danger:hover { background: #c8001a; }
+        .btn-gray { background: #eee; color: #555; }
+        .btn-gray:hover { background: #ddd; }
+
+        /* ===================== DUAL CHAT ===================== */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            gap: 16px;
+            padding: 16px 20px;
+            overflow: hidden;
+        }
+        .chat-panel {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-width: 0;
+        }
+        .chat-header {
+            padding: 13px 18px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            flex-shrink: 0;
+        }
+        .chat-header.vet { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
+        .chat-header.client { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .chat-avatar.vet { background: #43a047; color: white; }
+        .chat-avatar.client { background: #1e88e5; color: white; }
+        .chat-info h3 { font-size: 14px; color: #333; margin-bottom: 1px; }
+        .chat-info span { font-size: 11px; color: #888; }
+        .chat-online {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: #4caf50;
+        }
+        .online-dot {
+            width: 7px;
+            height: 7px;
+            background: #4caf50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .msg {
+            max-width: 82%;
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 13px;
+            line-height: 1.55;
+            word-break: break-word;
+        }
+        .msg.user {
+            align-self: flex-end;
+            background: #e2001a;
+            color: white;
+            border-bottom-right-radius: 3px;
+        }
+        .msg.agent {
+            align-self: flex-start;
+            background: white;
+            color: #333;
+            border: 1px solid #e8e8e8;
+            border-bottom-left-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .msg-time { font-size: 10px; opacity: 0.6; margin-top: 4px; }
+        .msg.user .msg-time { text-align: right; }
+        .typing {
+            display: flex;
+            gap: 4px;
+            padding: 12px 14px;
+            align-self: flex-start;
+            background: white;
+            border: 1px solid #e8e8e8;
+            border-radius: 14px;
+            border-bottom-left-radius: 3px;
+        }
+        .typing span {
+            width: 7px;
+            height: 7px;
+            background: #bbb;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite;
+        }
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+        .chat-input-row {
+            padding: 13px 15px;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            gap: 9px;
+            background: white;
+            flex-shrink: 0;
+        }
+        .chat-input-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 22px;
+            font-size: 13px;
+            outline: none;
+            background: #fafafa;
+        }
+        .chat-input-row input:focus { border-color: #e2001a; background: white; }
+        .send-btn {
+            background: #e2001a;
+            color: white;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .send-btn:hover { background: #c8001a; }
+        .send-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* ===================== TOOLS TABS ===================== */
+        .tools-container {
+            flex: 1;
+            padding: 24px 30px;
+            overflow-y: auto;
+        }
+
+        .tool-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .tool-card h2 {
+            font-size: 16px;
+            color: #222;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+        .tool-card .subtitle {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+        .form-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            min-width: 180px;
+        }
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .form-group select, .form-group input[type="text"] {
+            padding: 9px 13px;
+            border: 1px solid #ddd;
+            border-radius: 7px;
+            font-size: 13px;
+            background: #fafafa;
+        }
+        .form-group select:focus, .form-group input:focus {
+            outline: none;
+            border-color: #e2001a;
+            background: white;
+        }
+        .btn-primary {
+            background: #e2001a;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .btn-primary:hover { background: #c8001a; }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #444;
+            border: 1px solid #ddd;
+            padding: 9px 18px;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-secondary:hover { background: #eee; }
+
+        .result-box {
+            background: #f8f9ff;
+            border: 1px solid #d0d8ff;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-top: 12px;
+            font-size: 13px;
+            display: none;
+        }
+        .result-box.success { background: #f0fff4; border-color: #a3d9b1; }
+        .result-box.error { background: #fff5f5; border-color: #ffc5c5; }
+        .result-box .result-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            color: #666;
+        }
+        .result-box.success .result-label { color: #2e7d32; }
+        .result-box.error .result-label { color: #c62828; }
+        .result-link {
+            word-break: break-all;
+            color: #1565c0;
+            font-size: 13px;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .copy-btn {
+            background: #e2001a;
+            color: white;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .copy-btn:hover { background: #c8001a; }
+        .copy-btn.copied { background: #2e7d32; }
+
+        /* OAuth vet list */
+        .vet-list { display: flex; flex-direction: column; gap: 10px; }
+        .vet-item {
+            display: flex;
+            align-items: center;
+            padding: 13px 16px;
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 9px;
+            gap: 14px;
+        }
+        .vet-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #e2001a;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .vet-details { flex: 1; min-width: 0; }
+        .vet-name { font-size: 14px; font-weight: 600; color: #222; }
+        .vet-meta { font-size: 11px; color: #888; margin-top: 2px; }
+        .mp-badge {
+            font-size: 11px;
+            padding: 3px 9px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .mp-badge.connected { background: #e8f5e9; color: #2e7d32; }
+        .mp-badge.disconnected { background: #fce4ec; color: #c62828; }
+        .vet-oauth-result {
+            margin-top: 8px;
+            padding: 10px 12px;
+            background: #f0f4ff;
+            border: 1px solid #c5ceff;
+            border-radius: 7px;
+            font-size: 12px;
+            display: none;
+        }
+        .vet-oauth-result .oauth-link {
+            word-break: break-all;
+            color: #1565c0;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Footer */
+        .footer {
+            background: white;
+            padding: 8px 30px;
+            text-align: center;
+            font-size: 11px;
+            color: #bbb;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #bbb; }
+    </style>
+</head>
+<body>
+
+    <!-- ========== HEADER ========== -->
+    <div class="header">
+        <div class="header-left">
+            <div class="header-logo">DV</div>
+            <h1>Direct to Vet &mdash; <span>Backoffice</span></h1>
+        </div>
+        <span class="header-badge">&#128274; Admin</span>
+    </div>
+
+    <!-- ========== TABS ========== -->
+    <div class="tabs-bar">
+        <button class="tab-btn active" onclick="switchTab('chat')">
+            &#128172; Chat
+            <span class="tab-badge">VET + CLIENTE</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('payment')">
+            &#128179; Link de Pago
+            <span class="tab-badge">MP</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('oauth')">
+            &#128279; Conectar MP
+            <span class="tab-badge">OAuth</span>
+        </button>
+    </div>
+
+    <!-- ========== TAB: CHAT ========== -->
+    <div class="tab-panel active" id="panel-chat">
+        <div class="config-row">
+            <div class="config-group">
+                <label>Veterinaria:</label>
+                <select id="vetSelect">
+                    <option value="">Cargando...</option>
+                </select>
+            </div>
+            <div class="config-group">
+                <label>Cliente (tel):</label>
+                <input type="text" id="clientPhone" placeholder="+5491123456789" value="+5491199999999">
+            </div>
+            <button class="btn-sm btn-danger" onclick="loadVets()">&#8635; Recargar</button>
+            <button class="btn-sm btn-gray" onclick="clearChats()">&#128465; Limpiar</button>
+        </div>
+
+        <div class="chat-container">
+            <!-- VET Chat -->
+            <div class="chat-panel">
+                <div class="chat-header vet">
+                    <div class="chat-avatar vet">&#128105;&#8205;&#9877;</div>
+                    <div class="chat-info">
+                        <h3 id="vetName">Veterinaria</h3>
+                        <span id="vetSubtitle">Seleccioná una veterinaria</span>
+                    </div>
+                    <div class="chat-online">
+                        <span class="online-dot"></span> Agente VET
+                    </div>
+                </div>
+                <div class="chat-messages" id="vetMessages">
+                    <div class="msg agent">
+                        <div>Seleccioná una veterinaria arriba para comenzar.</div>
+                    </div>
+                </div>
+                <div class="chat-input-row">
+                    <input type="text" id="vetInput" placeholder="Escribí como veterinario..." onkeypress="handleKey(event,'vet')">
+                    <button class="send-btn" onclick="sendMsg('vet')" id="vetSend">&#10148;</button>
+                </div>
+            </div>
+
+            <!-- CLIENT Chat -->
+            <div class="chat-panel">
+                <div class="chat-header client">
+                    <div class="chat-avatar client">&#128100;</div>
+                    <div class="chat-info">
+                        <h3>Cliente Final</h3>
+                        <span id="clientSubtitle">+5491199999999</span>
+                    </div>
+                    <div class="chat-online">
+                        <span class="online-dot"></span> Agente CLIENTE
+                    </div>
+                </div>
+                <div class="chat-messages" id="clientMessages">
+                    <div class="msg agent">
+                        <div>Escribí un mensaje para simular al cliente.</div>
+                    </div>
+                </div>
+                <div class="chat-input-row">
+                    <input type="text" id="clientInput" placeholder="Escribí como cliente..." onkeypress="handleKey(event,'client')">
+                    <button class="send-btn" onclick="sendMsg('client')" id="clientSend">&#10148;</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TAB: PAYMENT LINK ========== -->
+    <div class="tab-panel" id="panel-payment">
+        <div class="tools-container">
+            <div class="tool-card">
+                <h2>&#128179; Generar Link de Pago</h2>
+                <p class="subtitle">Genera un link de checkout de Mercado Pago para un pedido existente. La veterinaria debe tener MP conectado.</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Veterinaria</label>
+                        <select id="payVetSelect">
+                            <option value="">Cargando...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>ID del Pedido</label>
+                        <input type="text" id="payOrderId" placeholder="ORD-XXXX">
+                    </div>
+                    <button class="btn-primary" onclick="generatePaymentLink()" id="payBtn">
+                        &#128279; Generar link
+                    </button>
+                </div>
+
+                <div class="result-box" id="payResult">
+                    <div class="result-label" id="payResultLabel">Resultado</div>
+                    <div class="result-link" id="payResultLink"></div>
+                    <div id="payResultMsg"></div>
+                    <button class="copy-btn" id="payCopyBtn" onclick="copyLink('payResultLink', 'payCopyBtn')" style="display:none">
+                        &#128203; Copiar link
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TAB: OAUTH ========== -->
+    <div class="tab-panel" id="panel-oauth">
+        <div class="tools-container">
+            <div class="tool-card">
+                <h2>&#128279; Links de Conexión MP (OAuth)</h2>
+                <p class="subtitle">Generá un link de autorización para que una veterinaria conecte su cuenta de Mercado Pago.</p>
+
+                <div id="oauthVetList" class="vet-list">
+                    <div style="color:#aaa;font-size:13px;padding:10px 0">Cargando veterinarias...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== FOOTER ========== -->
+    <div class="footer">Direct to Vet Backoffice &mdash; Solo para uso interno</div>
+
+    <script>
+        const API = '';
+        let selectedVet = null;
+        let vetList = [];
+
+        // ===================== INIT =====================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadVets();
+            document.getElementById('clientPhone').addEventListener('input', function() {
+                document.getElementById('clientSubtitle').textContent = this.value || 'Sin teléfono';
+            });
+        });
+
+        // ===================== TABS =====================
+        function switchTab(name) {
+            document.querySelectorAll('.tab-btn').forEach((b, i) => {
+                const panels = ['chat', 'payment', 'oauth'];
+                b.classList.toggle('active', panels[i] === name);
+            });
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('panel-' + name).classList.add('active');
+        }
+
+        // ===================== VET LOADER =====================
+        async function loadVets() {
+            try {
+                const res = await fetch(`${API}/backoffice/vets`);
+                const data = await res.json();
+                vetList = data.vets || [];
+
+                // Chat selector
+                const chatSel = document.getElementById('vetSelect');
+                chatSel.innerHTML = '<option value="">-- Seleccionar veterinaria --</option>';
+                vetList.forEach(v => {
+                    const o = document.createElement('option');
+                    o.value = JSON.stringify(v);
+                    o.textContent = `${v.name} (${v.vet_id})`;
+                    chatSel.appendChild(o);
+                });
+                chatSel.onchange = () => {
+                    if (!chatSel.value) return;
+                    selectedVet = JSON.parse(chatSel.value);
+                    document.getElementById('vetName').textContent = selectedVet.name;
+                    document.getElementById('vetSubtitle').textContent = `ID: ${selectedVet.vet_id} | ${selectedVet.whatsapp_e164}`;
+                    document.getElementById('vetMessages').innerHTML = `
+                        <div class="msg agent">
+                            <div>Conectado como <strong>${selectedVet.name}</strong>. Empezá a chatear!</div>
+                            <div class="msg-time">${time()}</div>
+                        </div>`;
+                };
+
+                // Payment selector
+                const paySel = document.getElementById('payVetSelect');
+                paySel.innerHTML = '<option value="">-- Seleccionar veterinaria --</option>';
+                vetList.forEach(v => {
+                    const o = document.createElement('option');
+                    o.value = v.vet_id;
+                    o.textContent = `${v.name} (${v.vet_id})${v.mp_connected ? ' ✓' : ' — sin MP'}`;
+                    paySel.appendChild(o);
+                });
+
+                // OAuth list
+                renderOauthList();
+
+            } catch (err) {
+                console.error('Error loading vets:', err);
+                document.getElementById('vetSelect').innerHTML = '<option value="">Error al cargar</option>';
+            }
+        }
+
+        function renderOauthList() {
+            const container = document.getElementById('oauthVetList');
+            if (!vetList.length) {
+                container.innerHTML = '<div style="color:#aaa;font-size:13px;padding:10px 0">No hay veterinarias registradas.</div>';
+                return;
+            }
+            container.innerHTML = '';
+            vetList.forEach(v => {
+                const div = document.createElement('div');
+                div.id = `vet-item-${v.vet_id}`;
+                div.innerHTML = `
+                    <div class="vet-item">
+                        <div class="vet-avatar">${v.name.charAt(0).toUpperCase()}</div>
+                        <div class="vet-details">
+                            <div class="vet-name">${v.name}</div>
+                            <div class="vet-meta">ID: ${v.vet_id} &bull; ${v.whatsapp_e164}</div>
+                        </div>
+                        <span class="mp-badge ${v.mp_connected ? 'connected' : 'disconnected'}">
+                            ${v.mp_connected ? '&#10003; MP conectado' : '&#10007; Sin MP'}
+                        </span>
+                        <button class="btn-primary" onclick="genOAuthLink('${v.vet_id}')" id="oauthBtn-${v.vet_id}" style="font-size:12px;padding:8px 14px">
+                            &#128279; Generar link
+                        </button>
+                    </div>
+                    <div class="vet-oauth-result" id="oauthResult-${v.vet_id}">
+                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#3949ab;margin-bottom:6px">Link OAuth generado</div>
+                        <div class="oauth-link" id="oauthLink-${v.vet_id}"></div>
+                        <button class="copy-btn" onclick="copyLink('oauthLink-${v.vet_id}', 'oauthCopy-${v.vet_id}')" id="oauthCopy-${v.vet_id}">
+                            &#128203; Copiar
+                        </button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // ===================== CHAT =====================
+        function handleKey(event, type) {
+            if (event.key === 'Enter') sendMsg(type);
+        }
+
+        async function sendMsg(type) {
+            const input = document.getElementById(`${type}Input`);
+            const messages = document.getElementById(`${type}Messages`);
+            const sendBtn = document.getElementById(`${type}Send`);
+            const text = input.value.trim();
+            if (!text) return;
+
+            if (type === 'vet' && !selectedVet) {
+                alert('Seleccioná una veterinaria primero.');
+                return;
+            }
+
+            addMsg(messages, text, 'user');
+            input.value = '';
+            sendBtn.disabled = true;
+            const typingId = showTyping(messages);
+
+            try {
+                const endpoint = type === 'vet' ? '/backoffice/vet/message' : '/backoffice/client/message';
+                const body = type === 'vet'
+                    ? { vet_id: selectedVet.vet_id, phone: selectedVet.whatsapp_e164, message: text }
+                    : { phone: document.getElementById('clientPhone').value, message: text };
+
+                const res = await fetch(`${API}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json();
+                removeTyping(typingId);
+                addMsg(messages, data.response || data.error || 'Sin respuesta', 'agent');
+            } catch (err) {
+                removeTyping(typingId);
+                addMsg(messages, `Error: ${err.message}`, 'agent');
+            }
+
+            sendBtn.disabled = false;
+            input.focus();
+        }
+
+        function addMsg(container, text, type) {
+            const div = document.createElement('div');
+            div.className = `msg ${type}`;
+            div.innerHTML = `<div>${fmt(text)}</div><div class="msg-time">${time()}</div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function fmt(text) {
+            return text
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+
+        let typingCtr = 0;
+        function showTyping(container) {
+            const id = `typing-${++typingCtr}`;
+            const div = document.createElement('div');
+            div.className = 'typing'; div.id = id;
+            div.innerHTML = '<span></span><span></span><span></span>';
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+        function removeTyping(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function clearChats() {
+            document.getElementById('vetMessages').innerHTML = '<div class="msg agent"><div>Chat limpiado.</div></div>';
+            document.getElementById('clientMessages').innerHTML = '<div class="msg agent"><div>Chat limpiado.</div></div>';
+        }
+
+        // ===================== PAYMENT LINK =====================
+        async function generatePaymentLink() {
+            const vetId = document.getElementById('payVetSelect').value;
+            const orderId = document.getElementById('payOrderId').value.trim();
+            const btn = document.getElementById('payBtn');
+            const result = document.getElementById('payResult');
+
+            if (!vetId || !orderId) {
+                alert('Completá la veterinaria y el ID del pedido.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Generando...';
+            result.style.display = 'none';
+
+            try {
+                const res = await fetch(`${API}/backoffice/payment-link`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ vet_id: vetId, order_id: orderId }),
+                });
+                const data = await res.json();
+
+                result.style.display = 'block';
+                const label = document.getElementById('payResultLabel');
+                const link = document.getElementById('payResultLink');
+                const msg = document.getElementById('payResultMsg');
+                const copyBtn = document.getElementById('payCopyBtn');
+
+                if (data.status === 'success') {
+                    result.className = 'result-box success';
+                    label.textContent = 'Link generado';
+                    link.textContent = data.payment_url;
+                    msg.textContent = '';
+                    copyBtn.style.display = 'inline-flex';
+                    copyBtn.textContent = '📋 Copiar link';
+                    copyBtn.classList.remove('copied');
+                } else {
+                    result.className = 'result-box error';
+                    label.textContent = 'Error';
+                    link.textContent = '';
+                    msg.textContent = data.message || 'Error desconocido';
+                    copyBtn.style.display = 'none';
+                }
+            } catch (err) {
+                result.style.display = 'block';
+                result.className = 'result-box error';
+                document.getElementById('payResultLabel').textContent = 'Error';
+                document.getElementById('payResultLink').textContent = '';
+                document.getElementById('payResultMsg').textContent = err.message;
+                document.getElementById('payCopyBtn').style.display = 'none';
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '&#128279; Generar link';
+        }
+
+        // ===================== OAUTH LINK =====================
+        async function genOAuthLink(vetId) {
+            const btn = document.getElementById(`oauthBtn-${vetId}`);
+            const resultDiv = document.getElementById(`oauthResult-${vetId}`);
+            const linkDiv = document.getElementById(`oauthLink-${vetId}`);
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>';
+
+            try {
+                const res = await fetch(`${API}/backoffice/oauth-link/${vetId}`, {
+                    method: 'POST',
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    linkDiv.textContent = data.redirect_url;
+                    resultDiv.style.display = 'block';
+                } else {
+                    alert(data.message || 'Error al generar link OAuth');
+                }
+            } catch (err) {
+                alert(`Error: ${err.message}`);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '&#128279; Generar link';
+        }
+
+        // ===================== COPY HELPER =====================
+        function copyLink(elId, btnId) {
+            const text = document.getElementById(elId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById(btnId);
+                const orig = btn.innerHTML;
+                btn.innerHTML = '&#10003; Copiado!';
+                btn.classList.add('copied');
+                setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
+            });
+        }
+
+        function time() {
+            return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+        }
+    </script>
+</body>
+</html>
