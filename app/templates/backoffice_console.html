@@ -195,7 +195,10 @@ tbody tr:hover{background:#fafbff}
     <div class="nav-item" onclick="showSection('chat')"><span class="nav-icon">&#128172;</span> Chat Agente</div>
     <div class="nav-item" onclick="showSection('oauth')"><span class="nav-icon">&#128279;</span> Conectar MP</div>
   </nav>
-  <div class="sidebar-footer">&#128274; Sesión activa</div>
+  <div class="sidebar-footer" style="display:flex;align-items:center;justify-content:space-between">
+    <span>&#128274; Sesión activa</span>
+    <button onclick="doLogout()" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:4px" title="Cerrar sesión">&#128682; Salir</button>
+  </div>
 </div>
 
 <!-- ===================== MAIN ===================== -->
@@ -1102,7 +1105,7 @@ function openStatusModal(orderId, currentStatus) {
   document.getElementById('statusModalResult').style.display = 'none';
   document.getElementById('statusModalResult').textContent = '';
   document.getElementById('statusModalBtn').disabled = false;
-  document.getElementById('statusModal').classList.add('active');
+  document.getElementById('statusModal').classList.add('open');
   // Guardamos el orderId en el botón para usarlo al guardar
   document.getElementById('statusModalBtn').dataset.orderId = orderId;
 }
@@ -1547,6 +1550,19 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 function showResult(id, ok, msg) { const el=document.getElementById(id); el.style.display='block'; el.className=`result-box ${ok?'success':'error'}`; el.textContent=msg; }
 function hideResult(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
+
+async function doLogout() {
+  // HTTP Basic Auth doesn't have a real logout, but we can force the browser
+  // to clear credentials by sending a request with invalid credentials (status 401),
+  // then redirecting to /backoffice so it prompts for login again.
+  try {
+    await fetch('/backoffice/logout', {
+      headers: { 'Authorization': 'Basic ' + btoa('logout:logout') }
+    });
+  } catch(e) {}
+  // Redirect with empty credentials to force the login dialog
+  window.location.href = '/backoffice';
+}
 
 function copyText(text, btn) {
   navigator.clipboard.writeText(text).then(() => {

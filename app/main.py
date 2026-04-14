@@ -517,6 +517,19 @@ async def backoffice_console(username: str = Depends(_require_backoffice_auth)):
     return HTMLResponse(content=get_backoffice_console_html())
 
 
+@app.get("/backoffice/logout")
+async def backoffice_logout():
+    """
+    Siempre devuelve 401 con WWW-Authenticate para que el browser descarte
+    las credenciales guardadas y muestre el diálogo de login al volver a /backoffice.
+    """
+    return Response(
+        status_code=401,
+        headers={"WWW-Authenticate": 'Basic realm="DirectToVet Backoffice"'},
+        content="Logged out",
+    )
+
+
 # --------------------------------------------------------------------------
 # VETS
 # --------------------------------------------------------------------------
