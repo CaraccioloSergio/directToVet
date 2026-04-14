@@ -1418,7 +1418,7 @@ async function checkMpStatus() {
       syncRow.innerHTML = `<span style="font-size:12px;color:#64748b">&#10003; Sin diferencias entre el pedido y MP${d.note?' — '+esc(d.note):''}</span>`;
     }
   } catch(e) { document.getElementById('mp-status-grid').innerHTML = `<div style="color:#dc2626;grid-column:1/-1">${e.message}</div>`; }
-  btn.disabled = false; btn.textContent = '&#128270; Consultar';
+  btn.disabled = false; btn.innerHTML = '&#128270; Consultar';
 }
 
 async function syncPayment(orderId) {
@@ -1551,17 +1551,16 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 function showResult(id, ok, msg) { const el=document.getElementById(id); el.style.display='block'; el.className=`result-box ${ok?'success':'error'}`; el.textContent=msg; }
 function hideResult(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
 
-async function doLogout() {
-  // HTTP Basic Auth doesn't have a real logout, but we can force the browser
-  // to clear credentials by sending a request with invalid credentials (status 401),
-  // then redirecting to /backoffice so it prompts for login again.
+function doLogout() {
+  // fetch() with a custom Authorization header does NOT clear the browser's
+  // cached Basic Auth credentials. XMLHttpRequest with wrong user/pass DOES.
   try {
-    await fetch('/backoffice/logout', {
-      headers: { 'Authorization': 'Basic ' + btoa('logout:logout') }
-    });
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/backoffice/logout', false, '__logout__', '__logout__'); // sync + wrong creds
+    xhr.send();
   } catch(e) {}
-  // Redirect with empty credentials to force the login dialog
-  window.location.href = '/backoffice';
+  // After the 401, navigate to /backoffice — browser will now prompt for login
+  window.location.replace('/backoffice');
 }
 
 function copyText(text, btn) {
