@@ -1,965 +1,1474 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Backoffice - Direct to Vet</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f2f5;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backoffice — Direct to Vet</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;display:flex;height:100vh;overflow:hidden}
 
-        /* ===================== HEADER ===================== */
-        .header {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: white;
-            padding: 14px 30px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-            flex-shrink: 0;
-        }
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .header-logo {
-            width: 36px;
-            height: 36px;
-            background: #e2001a;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: 800;
-            color: white;
-        }
-        .header h1 {
-            font-size: 18px;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-        }
-        .header h1 span {
-            color: #e2001a;
-        }
-        .header-badge {
-            background: rgba(226,0,26,0.25);
-            border: 1px solid rgba(226,0,26,0.4);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            color: #ff6b7a;
-            font-weight: 500;
-        }
+/* ===== SIDEBAR ===== */
+.sidebar{width:220px;background:#0f172a;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo .logo-title{font-size:14px;font-weight:700;color:#fff;letter-spacing:.5px}
+.sidebar-logo .logo-sub{font-size:11px;color:#64748b;margin-top:2px}
+.sidebar-nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 18px;cursor:pointer;font-size:13px;color:#94a3b8;border-left:3px solid transparent;transition:all .15s;user-select:none}
+.nav-item:hover{color:#e2e8f0;background:rgba(255,255,255,.05)}
+.nav-item.active{color:#fff;background:rgba(226,0,26,.15);border-left-color:#e2001a}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-sep{height:1px;background:rgba(255,255,255,.06);margin:8px 18px}
+.sidebar-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:#475569}
 
-        /* ===================== TABS ===================== */
-        .tabs-bar {
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            padding: 0 30px;
-            flex-shrink: 0;
-        }
-        .tab-btn {
-            padding: 14px 22px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            color: #888;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-        .tab-btn:hover { color: #555; }
-        .tab-btn.active {
-            color: #e2001a;
-            border-bottom-color: #e2001a;
-        }
-        .tab-badge {
-            background: #f0f0f0;
-            color: #888;
-            font-size: 10px;
-            padding: 2px 7px;
-            border-radius: 10px;
-        }
-        .tab-btn.active .tab-badge {
-            background: #fde8ea;
-            color: #e2001a;
-        }
+/* ===== MAIN ===== */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-title{font-size:16px;font-weight:600;color:#1e293b}
+.topbar-right{display:flex;align-items:center;gap:12px;font-size:12px;color:#64748b}
 
-        /* ===================== TAB PANELS ===================== */
-        .tab-panel { display: none; flex: 1; overflow: hidden; }
-        .tab-panel.active { display: flex; flex-direction: column; }
+/* ===== SECTIONS ===== */
+.section{display:none;flex:1;flex-direction:column;overflow:hidden}
+.section.active{display:flex}
+.section-body{flex:1;overflow-y:auto;padding:24px}
 
-        /* ===================== CONFIG ROW ===================== */
-        .config-row {
-            background: white;
-            padding: 12px 30px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-            flex-shrink: 0;
-        }
-        .config-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .config-group label {
-            font-size: 12px;
-            color: #666;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-        .config-group select, .config-group input[type="text"] {
-            padding: 7px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 13px;
-            min-width: 200px;
-            background: #fafafa;
-        }
-        .config-group select:focus, .config-group input:focus {
-            outline: none;
-            border-color: #e2001a;
-            background: white;
-        }
-        .btn-sm {
-            padding: 7px 14px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: background 0.2s;
-        }
-        .btn-danger { background: #e2001a; color: white; }
-        .btn-danger:hover { background: #c8001a; }
-        .btn-gray { background: #eee; color: #555; }
-        .btn-gray:hover { background: #ddd; }
+/* ===== TOOLBAR ===== */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.toolbar-right{margin-left:auto;display:flex;gap:8px}
+.search-input{padding:8px 14px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;width:240px;background:#fafafa;outline:none}
+.search-input:focus{border-color:#e2001a;background:#fff}
+.filter-select{padding:8px 12px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;background:#fafafa;outline:none;cursor:pointer}
+.filter-select:focus{border-color:#e2001a}
 
-        /* ===================== DUAL CHAT ===================== */
-        .chat-container {
-            flex: 1;
-            display: flex;
-            gap: 16px;
-            padding: 16px 20px;
-            overflow: hidden;
-        }
-        .chat-panel {
-            flex: 1;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-width: 0;
-        }
-        .chat-header {
-            padding: 13px 18px;
-            border-bottom: 1px solid #f0f0f0;
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            flex-shrink: 0;
-        }
-        .chat-header.vet { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
-        .chat-header.client { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
-        .chat-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-        .chat-avatar.vet { background: #43a047; color: white; }
-        .chat-avatar.client { background: #1e88e5; color: white; }
-        .chat-info h3 { font-size: 14px; color: #333; margin-bottom: 1px; }
-        .chat-info span { font-size: 11px; color: #888; }
-        .chat-online {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 11px;
-            color: #4caf50;
-        }
-        .online-dot {
-            width: 7px;
-            height: 7px;
-            background: #4caf50;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-        }
-        .chat-messages {
-            flex: 1;
-            padding: 16px;
-            overflow-y: auto;
-            background: #fafafa;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .msg {
-            max-width: 82%;
-            padding: 10px 14px;
-            border-radius: 14px;
-            font-size: 13px;
-            line-height: 1.55;
-            word-break: break-word;
-        }
-        .msg.user {
-            align-self: flex-end;
-            background: #e2001a;
-            color: white;
-            border-bottom-right-radius: 3px;
-        }
-        .msg.agent {
-            align-self: flex-start;
-            background: white;
-            color: #333;
-            border: 1px solid #e8e8e8;
-            border-bottom-left-radius: 3px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .msg-time { font-size: 10px; opacity: 0.6; margin-top: 4px; }
-        .msg.user .msg-time { text-align: right; }
-        .typing {
-            display: flex;
-            gap: 4px;
-            padding: 12px 14px;
-            align-self: flex-start;
-            background: white;
-            border: 1px solid #e8e8e8;
-            border-radius: 14px;
-            border-bottom-left-radius: 3px;
-        }
-        .typing span {
-            width: 7px;
-            height: 7px;
-            background: #bbb;
-            border-radius: 50%;
-            animation: bounce 1.4s infinite;
-        }
-        .typing span:nth-child(2) { animation-delay: 0.2s; }
-        .typing span:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes bounce {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-5px); }
-        }
-        .chat-input-row {
-            padding: 13px 15px;
-            border-top: 1px solid #f0f0f0;
-            display: flex;
-            gap: 9px;
-            background: white;
-            flex-shrink: 0;
-        }
-        .chat-input-row input {
-            flex: 1;
-            padding: 10px 14px;
-            border: 1px solid #e0e0e0;
-            border-radius: 22px;
-            font-size: 13px;
-            outline: none;
-            background: #fafafa;
-        }
-        .chat-input-row input:focus { border-color: #e2001a; background: white; }
-        .send-btn {
-            background: #e2001a;
-            color: white;
-            border: none;
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
-            transition: background 0.2s;
-        }
-        .send-btn:hover { background: #c8001a; }
-        .send-btn:disabled { background: #ccc; cursor: not-allowed; }
+/* ===== BUTTONS ===== */
+.btn{padding:8px 16px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
+.btn-primary{background:#e2001a;color:#fff}.btn-primary:hover{background:#c8001a}
+.btn-secondary{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.btn-secondary:hover{background:#e8edf2}
+.btn-success{background:#16a34a;color:#fff}.btn-success:hover{background:#15803d}
+.btn-warning{background:#d97706;color:#fff}.btn-warning:hover{background:#b45309}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 
-        /* ===================== TOOLS TABS ===================== */
-        .tools-container {
-            flex: 1;
-            padding: 24px 30px;
-            overflow-y: auto;
-        }
+/* ===== TABLE ===== */
+.table-wrap{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:#f8fafc;padding:10px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#64748b;border-bottom:1px solid #e2e8f0}
+tbody td{padding:11px 14px;border-bottom:1px solid #f1f5f9;color:#334155;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#fafbff}
+.empty-row td{text-align:center;color:#94a3b8;padding:30px}
 
-        .tool-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-            padding: 24px;
-            margin-bottom: 20px;
-        }
-        .tool-card h2 {
-            font-size: 16px;
-            color: #222;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-        .tool-card .subtitle {
-            font-size: 13px;
-            color: #888;
-            margin-bottom: 20px;
-        }
-        .form-row {
-            display: flex;
-            gap: 12px;
-            align-items: flex-end;
-            flex-wrap: wrap;
-            margin-bottom: 16px;
-        }
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            flex: 1;
-            min-width: 180px;
-        }
-        .form-group label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #555;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-        .form-group select, .form-group input[type="text"] {
-            padding: 9px 13px;
-            border: 1px solid #ddd;
-            border-radius: 7px;
-            font-size: 13px;
-            background: #fafafa;
-        }
-        .form-group select:focus, .form-group input:focus {
-            outline: none;
-            border-color: #e2001a;
-            background: white;
-        }
-        .btn-primary {
-            background: #e2001a;
-            color: white;
-            border: none;
-            padding: 10px 22px;
-            border-radius: 7px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            transition: background 0.2s;
-            white-space: nowrap;
-        }
-        .btn-primary:hover { background: #c8001a; }
-        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
-        .btn-secondary {
-            background: #f5f5f5;
-            color: #444;
-            border: 1px solid #ddd;
-            padding: 9px 18px;
-            border-radius: 7px;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .btn-secondary:hover { background: #eee; }
+/* ===== BADGES ===== */
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.badge-green{background:#dcfce7;color:#15803d}
+.badge-red{background:#fee2e2;color:#dc2626}
+.badge-yellow{background:#fef9c3;color:#92400e}
+.badge-blue{background:#dbeafe;color:#1d4ed8}
+.badge-gray{background:#f1f5f9;color:#64748b}
+.badge-purple{background:#f3e8ff;color:#7c3aed}
 
-        .result-box {
-            background: #f8f9ff;
-            border: 1px solid #d0d8ff;
-            border-radius: 8px;
-            padding: 14px 16px;
-            margin-top: 12px;
-            font-size: 13px;
-            display: none;
-        }
-        .result-box.success { background: #f0fff4; border-color: #a3d9b1; }
-        .result-box.error { background: #fff5f5; border-color: #ffc5c5; }
-        .result-box .result-label {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
-            color: #666;
-        }
-        .result-box.success .result-label { color: #2e7d32; }
-        .result-box.error .result-label { color: #c62828; }
-        .result-link {
-            word-break: break-all;
-            color: #1565c0;
-            font-size: 13px;
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-        .copy-btn {
-            background: #e2001a;
-            color: white;
-            border: none;
-            padding: 7px 14px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .copy-btn:hover { background: #c8001a; }
-        .copy-btn.copied { background: #2e7d32; }
+/* ===== MODAL ===== */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:12px;width:560px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-header{padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:16px;font-weight:600;color:#1e293b}
+.modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;line-height:1}
+.modal-close:hover{color:#475569}
+.modal-body{padding:24px;overflow-y:auto;flex:1}
+.modal-footer{padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:8px}
 
-        /* OAuth vet list */
-        .vet-list { display: flex; flex-direction: column; gap: 10px; }
-        .vet-item {
-            display: flex;
-            align-items: center;
-            padding: 13px 16px;
-            background: #fafafa;
-            border: 1px solid #eee;
-            border-radius: 9px;
-            gap: 14px;
-        }
-        .vet-avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            background: #e2001a;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-        .vet-details { flex: 1; min-width: 0; }
-        .vet-name { font-size: 14px; font-weight: 600; color: #222; }
-        .vet-meta { font-size: 11px; color: #888; margin-top: 2px; }
-        .mp-badge {
-            font-size: 11px;
-            padding: 3px 9px;
-            border-radius: 12px;
-            font-weight: 600;
-        }
-        .mp-badge.connected { background: #e8f5e9; color: #2e7d32; }
-        .mp-badge.disconnected { background: #fce4ec; color: #c62828; }
-        .vet-oauth-result {
-            margin-top: 8px;
-            padding: 10px 12px;
-            background: #f0f4ff;
-            border: 1px solid #c5ceff;
-            border-radius: 7px;
-            font-size: 12px;
-            display: none;
-        }
-        .vet-oauth-result .oauth-link {
-            word-break: break-all;
-            color: #1565c0;
-            line-height: 1.5;
-            margin-bottom: 8px;
-        }
+/* ===== FORMS ===== */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.full{grid-template-columns:1fr}
+.form-col-2{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:12px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.4px}
+.form-group input,.form-group select,.form-group textarea{padding:9px 12px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;background:#fafafa;outline:none;font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#e2001a;background:#fff}
+.form-group textarea{resize:vertical;min-height:70px}
+.form-hint{font-size:11px;color:#94a3b8;margin-top:3px}
 
-        /* Loading spinner */
-        .spinner {
-            display: inline-block;
-            width: 14px;
-            height: 14px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+/* ===== STAT CARDS ===== */
+.stat-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.stat-card .stat-val{font-size:26px;font-weight:700;color:#1e293b;margin-bottom:2px}
+.stat-card .stat-lbl{font-size:12px;color:#64748b}
 
-        /* Footer */
-        .footer {
-            background: white;
-            padding: 8px 30px;
-            text-align: center;
-            font-size: 11px;
-            color: #bbb;
-            border-top: 1px solid #eee;
-            flex-shrink: 0;
-        }
+/* ===== ORDER FORM ===== */
+.order-wizard{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
+.wizard-steps{display:flex;border-bottom:1px solid #e2e8f0;background:#f8fafc}
+.wizard-step{flex:1;padding:14px;text-align:center;font-size:12px;font-weight:600;color:#94a3b8;cursor:default;border-bottom:3px solid transparent}
+.wizard-step.active{color:#e2001a;border-bottom-color:#e2001a;background:#fff}
+.wizard-step.done{color:#16a34a}
+.wizard-panel{display:none;padding:24px}
+.wizard-panel.active{display:block}
 
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #bbb; }
-    </style>
+/* ===== CART TABLE (within order form) ===== */
+.cart-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.cart-table th{background:#f8fafc;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;border-bottom:1px solid #e2e8f0}
+.cart-table td{padding:9px 10px;border-bottom:1px solid #f1f5f9}
+.cart-table tbody tr:last-child td{border-bottom:none}
+.cart-total{text-align:right;font-weight:700;font-size:15px;padding:12px 0 4px;color:#1e293b}
+
+/* ===== CHAT ===== */
+.chat-layout{display:flex;gap:16px;flex:1;overflow:hidden;padding:16px 20px}
+.chat-panel{flex:1;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.chat-head{padding:12px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.chat-head.vet{background:linear-gradient(135deg,#e8f5e9,#c8e6c9)}
+.chat-head.client{background:linear-gradient(135deg,#e3f2fd,#bbdefb)}
+.chat-avatar{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.chat-avatar.vet{background:#43a047;color:#fff}
+.chat-avatar.client{background:#1e88e5;color:#fff}
+.chat-info h4{font-size:13px;font-weight:600;color:#1e293b}
+.chat-info span{font-size:11px;color:#94a3b8}
+.chat-msgs{flex:1;padding:14px;overflow-y:auto;background:#fafafa;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:84%;padding:9px 13px;border-radius:12px;font-size:13px;line-height:1.5;word-break:break-word}
+.msg.user{align-self:flex-end;background:#e2001a;color:#fff;border-bottom-right-radius:3px}
+.msg.agent{align-self:flex-start;background:#fff;color:#334155;border:1px solid #e8e8e8;border-bottom-left-radius:3px}
+.msg-time{font-size:10px;opacity:.6;margin-top:3px}
+.msg.user .msg-time{text-align:right}
+.typing{display:flex;gap:3px;padding:10px 13px;align-self:flex-start;background:#fff;border:1px solid #e8e8e8;border-radius:12px;border-bottom-left-radius:3px}
+.typing span{width:6px;height:6px;background:#bbb;border-radius:50%;animation:bounce 1.4s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+.chat-input-row{padding:11px 13px;border-top:1px solid #f0f0f0;display:flex;gap:8px;background:#fff;flex-shrink:0}
+.chat-input-row input{flex:1;padding:9px 13px;border:1px solid #e0e0e0;border-radius:20px;font-size:13px;outline:none}
+.chat-input-row input:focus{border-color:#e2001a}
+.send-btn{background:#e2001a;color:#fff;border:none;width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.send-btn:hover{background:#c8001a}
+.send-btn:disabled{background:#ccc;cursor:not-allowed}
+
+/* ===== OAUTH LIST ===== */
+.oauth-list{display:flex;flex-direction:column;gap:10px}
+.oauth-item{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;display:flex;align-items:center;gap:14px}
+.oauth-avatar{width:40px;height:40px;border-radius:50%;background:#e2001a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0}
+.oauth-details{flex:1;min-width:0}
+.oauth-name{font-size:14px;font-weight:600;color:#1e293b}
+.oauth-meta{font-size:11px;color:#94a3b8;margin-top:1px}
+.oauth-result{margin-top:8px;padding:10px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:7px;font-size:12px;display:none}
+.oauth-link{word-break:break-all;color:#1d4ed8;line-height:1.5;margin-bottom:6px}
+
+/* ===== MISC ===== */
+.result-box{padding:14px 16px;border-radius:8px;font-size:13px;margin-top:12px;display:none}
+.result-box.success{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+.result-box.error{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.copy-btn{background:#e2001a;color:#fff;border:none;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer}
+.copy-btn:hover{background:#c8001a}
+.copy-btn.copied{background:#16a34a}
+.tag-input-row{display:flex;gap:8px;align-items:center}
+.page-hint{font-size:12px;color:#94a3b8;margin-top:4px}
+
+/* CSV drop zone */
+.drop-zone{border:2px dashed #cbd5e1;border-radius:10px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;background:#fafafa}
+.drop-zone:hover,.drop-zone.dragging{border-color:#e2001a;background:#fff5f5}
+.drop-zone p{font-size:13px;color:#64748b;margin-top:8px}
+.drop-zone .drop-icon{font-size:32px}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+
+/* Config row */
+.config-row{background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;flex-shrink:0}
+</style>
 </head>
 <body>
 
-    <!-- ========== HEADER ========== -->
-    <div class="header">
-        <div class="header-left">
-            <div class="header-logo">DV</div>
-            <h1>Direct to Vet &mdash; <span>Backoffice</span></h1>
-        </div>
-        <span class="header-badge">&#128274; Admin</span>
+<!-- ===================== SIDEBAR ===================== -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-title">&#128054; Direct to Vet</div>
+    <div class="logo-sub">Backoffice Admin</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="showSection('vets')"><span class="nav-icon">&#127973;</span> Veterinarias</div>
+    <div class="nav-item" onclick="showSection('customers')"><span class="nav-icon">&#128100;</span> Clientes</div>
+    <div class="nav-item" onclick="showSection('catalog')"><span class="nav-icon">&#128230;</span> Catálogo</div>
+    <div class="nav-item" onclick="showSection('orders')"><span class="nav-icon">&#128203;</span> Órdenes</div>
+    <div class="nav-sep"></div>
+    <div class="nav-item" onclick="showSection('payments')"><span class="nav-icon">&#128179;</span> Pagos MP</div>
+    <div class="nav-item" onclick="showSection('chat')"><span class="nav-icon">&#128172;</span> Chat Agente</div>
+    <div class="nav-item" onclick="showSection('oauth')"><span class="nav-icon">&#128279;</span> Conectar MP</div>
+  </nav>
+  <div class="sidebar-footer">&#128274; Sesión activa</div>
+</div>
+
+<!-- ===================== MAIN ===================== -->
+<div class="main">
+  <div class="topbar">
+    <span class="topbar-title" id="topbarTitle">Veterinarias</span>
+    <div class="topbar-right">
+      <span id="topbarSub"></span>
     </div>
+  </div>
 
-    <!-- ========== TABS ========== -->
-    <div class="tabs-bar">
-        <button class="tab-btn active" onclick="switchTab('chat')">
-            &#128172; Chat
-            <span class="tab-badge">VET + CLIENTE</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('payment')">
-            &#128179; Link de Pago
-            <span class="tab-badge">MP</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('oauth')">
-            &#128279; Conectar MP
-            <span class="tab-badge">OAuth</span>
-        </button>
+  <!-- ===== VETS ===== -->
+  <div class="section active" id="section-vets">
+    <div class="section-body">
+      <div class="toolbar">
+        <input class="search-input" id="vetSearch" placeholder="&#128269; Buscar por nombre, email..." oninput="filterVets()">
+        <div class="toolbar-right">
+          <button class="btn btn-primary" onclick="openVetModal()">+ Nueva Vet</button>
+          <button class="btn btn-secondary" onclick="loadVets()">&#8635; Recargar</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Nombre</th><th>Contacto</th><th>WhatsApp</th><th>Email</th><th>Activa</th><th>MP</th><th>Acciones</th>
+          </tr></thead>
+          <tbody id="vetTableBody">
+            <tr class="empty-row"><td colspan="8">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
+  </div>
 
-    <!-- ========== TAB: CHAT ========== -->
-    <div class="tab-panel active" id="panel-chat">
-        <div class="config-row">
-            <div class="config-group">
-                <label>Veterinaria:</label>
-                <select id="vetSelect">
-                    <option value="">Cargando...</option>
-                </select>
-            </div>
-            <div class="config-group">
-                <label>Cliente (tel):</label>
-                <input type="text" id="clientPhone" placeholder="+5491123456789" value="+5491199999999">
-            </div>
-            <button class="btn-sm btn-danger" onclick="loadVets()">&#8635; Recargar</button>
-            <button class="btn-sm btn-gray" onclick="clearChats()">&#128465; Limpiar</button>
+  <!-- ===== CUSTOMERS ===== -->
+  <div class="section" id="section-customers">
+    <div class="section-body">
+      <div class="toolbar">
+        <select class="filter-select" id="custVetFilter" onchange="loadCustomers()"><option value="">Todas las vets</option></select>
+        <input class="search-input" id="custSearch" placeholder="&#128269; Nombre, email, teléfono..." oninput="loadCustomers()">
+        <div class="toolbar-right">
+          <button class="btn btn-primary" onclick="openCustModal()">+ Nuevo Cliente</button>
+          <button class="btn btn-secondary" onclick="loadCustomers()">&#8635; Recargar</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Nombre</th><th>WhatsApp</th><th>Email</th><th>Veterinaria</th><th>Mascota</th><th>Acciones</th>
+          </tr></thead>
+          <tbody id="custTableBody">
+            <tr class="empty-row"><td colspan="7">Seleccioná una veterinaria para ver sus clientes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CATALOG ===== -->
+  <div class="section" id="section-catalog">
+    <div class="section-body">
+      <div class="toolbar">
+        <input class="search-input" id="catSearch" placeholder="&#128269; SKU, nombre, presentación..." oninput="loadCatalog()">
+        <div class="toolbar-right">
+          <button class="btn btn-primary" onclick="openProductModal()">+ Producto</button>
+          <button class="btn btn-secondary" onclick="openCsvModal()">&#8679; Importar CSV</button>
+          <button class="btn btn-secondary" onclick="loadCatalog()">&#8635; Recargar</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>SKU</th><th>Nombre</th><th>Presentación</th><th>P. Cliente</th><th>P. Distrib.</th><th>Stock</th><th>Activo</th><th>Acciones</th>
+          </tr></thead>
+          <tbody id="catTableBody">
+            <tr class="empty-row"><td colspan="8">Cargando catálogo...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ORDERS ===== -->
+  <div class="section" id="section-orders">
+    <div class="section-body">
+      <div class="toolbar">
+        <select class="filter-select" id="ordVetFilter" onchange="loadOrders()"><option value="">Todas las vets</option></select>
+        <select class="filter-select" id="ordStatusFilter" onchange="loadOrders()">
+          <option value="">Todos los estados</option>
+          <option value="CREATED">CREATED</option>
+          <option value="PAYMENT_PENDING_MP">PAYMENT_PENDING_MP</option>
+          <option value="PAYMENT_AT_VET">PAYMENT_AT_VET</option>
+          <option value="PAYMENT_APPROVED">PAYMENT_APPROVED</option>
+          <option value="PAYMENT_REJECTED">PAYMENT_REJECTED</option>
+          <option value="PREPARING">PREPARING</option>
+          <option value="READY_FOR_PICKUP">READY_FOR_PICKUP</option>
+          <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY</option>
+          <option value="DELIVERED">DELIVERED</option>
+          <option value="COMPLETED">COMPLETED</option>
+          <option value="CANCELLED">CANCELLED</option>
+        </select>
+        <input class="search-input" id="ordSearch" placeholder="&#128269; ID, nombre, email..." oninput="loadOrders()" style="width:200px">
+        <div class="toolbar-right">
+          <button class="btn btn-primary" onclick="showSection('new-order')">+ Nueva Orden</button>
+          <button class="btn btn-secondary" onclick="loadOrders()">&#8635; Recargar</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>ID</th><th>Vet</th><th>Cliente</th><th>Entrega</th><th>Items</th><th>Total</th><th>Estado</th><th>Pago</th><th>Fecha</th><th>Acciones</th>
+          </tr></thead>
+          <tbody id="ordTableBody">
+            <tr class="empty-row"><td colspan="10">Cargando órdenes...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== NEW ORDER WIZARD ===== -->
+  <div class="section" id="section-new-order">
+    <div class="section-body">
+      <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <button class="btn btn-secondary btn-sm" onclick="showSection('orders')">&#8592; Volver</button>
+        <span style="font-size:15px;font-weight:600;color:#1e293b">Nueva Orden</span>
+      </div>
+      <div class="order-wizard">
+        <div class="wizard-steps">
+          <div class="wizard-step active" id="ws1">1. Veterinaria</div>
+          <div class="wizard-step" id="ws2">2. Cliente</div>
+          <div class="wizard-step" id="ws3">3. Productos</div>
+          <div class="wizard-step" id="ws4">4. Entrega</div>
+          <div class="wizard-step" id="ws5">5. Confirmar</div>
         </div>
 
-        <div class="chat-container">
-            <!-- VET Chat -->
-            <div class="chat-panel">
-                <div class="chat-header vet">
-                    <div class="chat-avatar vet">&#128105;&#8205;&#9877;</div>
-                    <div class="chat-info">
-                        <h3 id="vetName">Veterinaria</h3>
-                        <span id="vetSubtitle">Seleccioná una veterinaria</span>
-                    </div>
-                    <div class="chat-online">
-                        <span class="online-dot"></span> Agente VET
-                    </div>
-                </div>
-                <div class="chat-messages" id="vetMessages">
-                    <div class="msg agent">
-                        <div>Seleccioná una veterinaria arriba para comenzar.</div>
-                    </div>
-                </div>
-                <div class="chat-input-row">
-                    <input type="text" id="vetInput" placeholder="Escribí como veterinario..." onkeypress="handleKey(event,'vet')">
-                    <button class="send-btn" onclick="sendMsg('vet')" id="vetSend">&#10148;</button>
-                </div>
+        <!-- Step 1: Vet -->
+        <div class="wizard-panel active" id="wp1">
+          <div class="form-grid full">
+            <div class="form-group">
+              <label>Veterinaria</label>
+              <select id="nv-vet" onchange="onWizardVetChange()"><option value="">Seleccioná...</option></select>
             </div>
-
-            <!-- CLIENT Chat -->
-            <div class="chat-panel">
-                <div class="chat-header client">
-                    <div class="chat-avatar client">&#128100;</div>
-                    <div class="chat-info">
-                        <h3>Cliente Final</h3>
-                        <span id="clientSubtitle">+5491199999999</span>
-                    </div>
-                    <div class="chat-online">
-                        <span class="online-dot"></span> Agente CLIENTE
-                    </div>
-                </div>
-                <div class="chat-messages" id="clientMessages">
-                    <div class="msg agent">
-                        <div>Escribí un mensaje para simular al cliente.</div>
-                    </div>
-                </div>
-                <div class="chat-input-row">
-                    <input type="text" id="clientInput" placeholder="Escribí como cliente..." onkeypress="handleKey(event,'client')">
-                    <button class="send-btn" onclick="sendMsg('client')" id="clientSend">&#10148;</button>
-                </div>
-            </div>
+          </div>
+          <div style="margin-top:20px;text-align:right">
+            <button class="btn btn-primary" onclick="wizardNext(1)">Siguiente →</button>
+          </div>
         </div>
-    </div>
 
-    <!-- ========== TAB: PAYMENT LINK ========== -->
-    <div class="tab-panel" id="panel-payment">
-        <div class="tools-container">
-            <div class="tool-card">
-                <h2>&#128179; Generar Link de Pago</h2>
-                <p class="subtitle">Genera un link de checkout de Mercado Pago para un pedido existente. La veterinaria debe tener MP conectado.</p>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Veterinaria</label>
-                        <select id="payVetSelect">
-                            <option value="">Cargando...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>ID del Pedido</label>
-                        <input type="text" id="payOrderId" placeholder="ORD-XXXX">
-                    </div>
-                    <button class="btn-primary" onclick="generatePaymentLink()" id="payBtn">
-                        &#128279; Generar link
-                    </button>
-                </div>
-
-                <div class="result-box" id="payResult">
-                    <div class="result-label" id="payResultLabel">Resultado</div>
-                    <div class="result-link" id="payResultLink"></div>
-                    <div id="payResultMsg"></div>
-                    <button class="copy-btn" id="payCopyBtn" onclick="copyLink('payResultLink', 'payCopyBtn')" style="display:none">
-                        &#128203; Copiar link
-                    </button>
-                </div>
+        <!-- Step 2: Customer -->
+        <div class="wizard-panel" id="wp2">
+          <div class="form-grid">
+            <div class="form-group form-col-2">
+              <label>Buscar cliente existente</label>
+              <div class="tag-input-row">
+                <input type="text" id="nv-cust-search" placeholder="Nombre, email o teléfono..." class="form-group input" style="flex:1;padding:9px 12px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px">
+                <button class="btn btn-secondary" onclick="searchCustomerForOrder()">Buscar</button>
+              </div>
+              <div id="nv-cust-results" style="margin-top:8px"></div>
             </div>
-        </div>
-    </div>
-
-    <!-- ========== TAB: OAUTH ========== -->
-    <div class="tab-panel" id="panel-oauth">
-        <div class="tools-container">
-            <div class="tool-card">
-                <h2>&#128279; Links de Conexión MP (OAuth)</h2>
-                <p class="subtitle">Generá un link de autorización para que una veterinaria conecte su cuenta de Mercado Pago.</p>
-
-                <div id="oauthVetList" class="vet-list">
-                    <div style="color:#aaa;font-size:13px;padding:10px 0">Cargando veterinarias...</div>
-                </div>
+            <div class="form-group form-col-2" style="border-top:1px solid #e2e8f0;padding-top:14px;margin-top:4px">
+              <label style="color:#94a3b8">— o ingresá manualmente —</label>
             </div>
+            <div class="form-group"><label>Nombre *</label><input type="text" id="nv-fname" placeholder="Juan"></div>
+            <div class="form-group"><label>Apellido *</label><input type="text" id="nv-lname" placeholder="García"></div>
+            <div class="form-group"><label>Email *</label><input type="email" id="nv-email" placeholder="juan@email.com"></div>
+            <div class="form-group"><label>WhatsApp *</label><input type="text" id="nv-phone" placeholder="+5491100000000"></div>
+          </div>
+          <div style="margin-top:20px;display:flex;justify-content:space-between">
+            <button class="btn btn-secondary" onclick="wizardBack(2)">← Atrás</button>
+            <button class="btn btn-primary" onclick="wizardNext(2)">Siguiente →</button>
+          </div>
         </div>
+
+        <!-- Step 3: Products -->
+        <div class="wizard-panel" id="wp3">
+          <div class="tag-input-row" style="margin-bottom:12px">
+            <input type="text" id="nv-prod-search" placeholder="Buscar producto (SKU o nombre)..." style="flex:1;padding:9px 12px;border:1px solid #e2e8f0;border-radius:7px;font-size:13px">
+            <button class="btn btn-secondary" onclick="searchProductForOrder()">Buscar</button>
+          </div>
+          <div id="nv-prod-results" style="margin-bottom:12px"></div>
+          <table class="cart-table">
+            <thead><tr><th>Producto</th><th>SKU</th><th>Cant.</th><th>P. Unit.</th><th>Subtotal</th><th></th></tr></thead>
+            <tbody id="nv-cart-body"><tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:16px">Carrito vacío</td></tr></tbody>
+          </table>
+          <div class="cart-total" id="nv-cart-total">Total productos: $0.00</div>
+          <div style="margin-top:20px;display:flex;justify-content:space-between">
+            <button class="btn btn-secondary" onclick="wizardBack(3)">← Atrás</button>
+            <button class="btn btn-primary" onclick="wizardNext(3)">Siguiente →</button>
+          </div>
+        </div>
+
+        <!-- Step 4: Delivery + Payment -->
+        <div class="wizard-panel" id="wp4">
+          <div class="form-grid">
+            <div class="form-group form-col-2">
+              <label>Modo de entrega</label>
+              <select id="nv-delivery" onchange="onDeliveryChange()">
+                <option value="PICKUP">PICKUP — Retira en veterinaria</option>
+                <option value="DELIVERY">DELIVERY — Envío a domicilio</option>
+              </select>
+            </div>
+            <div id="delivery-fields" style="display:none;grid-column:1/-1;display:none">
+              <div class="form-grid" style="margin-top:0">
+                <div class="form-group"><label>Dirección</label><input type="text" id="nv-address" placeholder="Av. Corrientes 1234, Piso 3"></div>
+                <div class="form-group">
+                  <label>Zona AMBA</label>
+                  <select id="nv-zone" onchange="onZoneChange()"><option value="">Seleccioná zona...</option></select>
+                </div>
+              </div>
+            </div>
+            <div class="form-group form-col-2" style="padding-top:4px">
+              <label>Costo de envío</label>
+              <input type="text" id="nv-shipping-display" value="$0.00" readonly style="background:#f8fafc;color:#64748b">
+            </div>
+            <div class="form-group form-col-2">
+              <label>Método de pago</label>
+              <select id="nv-payment">
+                <option value="AT_VET">En mostrador (AT_VET)</option>
+                <option value="MERCADOPAGO">Mercado Pago (MERCADOPAGO)</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:20px;display:flex;justify-content:space-between">
+            <button class="btn btn-secondary" onclick="wizardBack(4)">← Atrás</button>
+            <button class="btn btn-primary" onclick="wizardNext(4)">Ver resumen →</button>
+          </div>
+        </div>
+
+        <!-- Step 5: Summary -->
+        <div class="wizard-panel" id="wp5">
+          <div id="nv-summary" style="font-size:13px;line-height:1.8;color:#334155"></div>
+          <div id="nv-create-result" class="result-box" style="margin-top:12px"></div>
+          <div style="margin-top:20px;display:flex;justify-content:space-between">
+            <button class="btn btn-secondary" onclick="wizardBack(5)">← Atrás</button>
+            <button class="btn btn-success" id="nv-create-btn" onclick="submitOrder()">&#10003; Crear Orden</button>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- ========== FOOTER ========== -->
-    <div class="footer">Direct to Vet Backoffice &mdash; Solo para uso interno</div>
+  <!-- ===== PAYMENTS ===== -->
+  <div class="section" id="section-payments">
+    <div class="section-body">
+      <!-- Payment Link Generator -->
+      <div class="table-wrap" style="padding:24px;margin-bottom:20px">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:6px;color:#1e293b">&#128179; Generar Link de Pago</h3>
+        <p style="font-size:13px;color:#64748b;margin-bottom:18px">Genera un link de Mercado Pago para una orden existente. La vet debe tener MP conectado.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="min-width:200px">
+            <label>Veterinaria</label>
+            <select id="pay-vet"></select>
+          </div>
+          <div class="form-group" style="min-width:180px">
+            <label>ID del Pedido</label>
+            <input type="text" id="pay-order-id" placeholder="ORD-XXXXXXXX">
+          </div>
+          <button class="btn btn-primary" id="pay-gen-btn" onclick="generatePaymentLink()">&#128279; Generar link</button>
+        </div>
+        <div class="result-box" id="pay-result"></div>
+      </div>
 
-    <script>
-        const API = '';
-        let selectedVet = null;
-        let vetList = [];
+      <!-- MP Status Checker -->
+      <div class="table-wrap" style="padding:24px">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:6px;color:#1e293b">&#128270; Consultar Estado de Pago en MP</h3>
+        <p style="font-size:13px;color:#64748b;margin-bottom:18px">Consulta el estado real del pago en la API de Mercado Pago y sincroniza el pedido si es necesario.</p>
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+          <div class="form-group" style="min-width:200px">
+            <label>ID del Pedido</label>
+            <input type="text" id="mp-check-order" placeholder="ORD-XXXXXXXX">
+          </div>
+          <button class="btn btn-secondary" id="mp-check-btn" onclick="checkMpStatus()">&#128270; Consultar</button>
+        </div>
+        <div id="mp-status-result" style="margin-top:16px;display:none">
+          <div class="table-wrap" style="padding:16px">
+            <div id="mp-status-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px"></div>
+            <div style="margin-top:14px" id="mp-sync-row"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        // ===================== INIT =====================
-        document.addEventListener('DOMContentLoaded', () => {
-            loadVets();
-            document.getElementById('clientPhone').addEventListener('input', function() {
-                document.getElementById('clientSubtitle').textContent = this.value || 'Sin teléfono';
-            });
-        });
+  <!-- ===== CHAT ===== -->
+  <div class="section" id="section-chat">
+    <div class="config-row">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase">Vet:</span>
+        <select id="chatVetSel" style="padding:7px 11px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;min-width:200px"></select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase">Cliente (tel):</span>
+        <input type="text" id="chatClientPhone" value="+5491199999999" style="padding:7px 11px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;width:180px">
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="clearChats()">&#128465; Limpiar</button>
+    </div>
+    <div class="chat-layout">
+      <div class="chat-panel">
+        <div class="chat-head vet">
+          <div class="chat-avatar vet">&#128105;&#8205;&#9877;</div>
+          <div class="chat-info"><h4 id="chatVetName">Veterinaria</h4><span id="chatVetSub">Seleccioná una vet</span></div>
+          <span style="margin-left:auto;font-size:11px;color:#4caf50">&#9679; Agente VET</span>
+        </div>
+        <div class="chat-msgs" id="vetMsgs"><div class="msg agent"><div>Seleccioná una veterinaria para comenzar.</div></div></div>
+        <div class="chat-input-row">
+          <input type="text" id="vetChatInput" placeholder="Escribí como veterinario..." onkeypress="chatKey(event,'vet')">
+          <button class="send-btn" id="vetSendBtn" onclick="chatSend('vet')">&#10148;</button>
+        </div>
+      </div>
+      <div class="chat-panel">
+        <div class="chat-head client">
+          <div class="chat-avatar client">&#128100;</div>
+          <div class="chat-info"><h4>Cliente Final</h4><span id="chatClientSub">+5491199999999</span></div>
+          <span style="margin-left:auto;font-size:11px;color:#4caf50">&#9679; Agente CLIENTE</span>
+        </div>
+        <div class="chat-msgs" id="clientMsgs"><div class="msg agent"><div>Escribí un mensaje como cliente.</div></div></div>
+        <div class="chat-input-row">
+          <input type="text" id="clientChatInput" placeholder="Escribí como cliente..." onkeypress="chatKey(event,'client')">
+          <button class="send-btn" id="clientSendBtn" onclick="chatSend('client')">&#10148;</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        // ===================== TABS =====================
-        function switchTab(name) {
-            document.querySelectorAll('.tab-btn').forEach((b, i) => {
-                const panels = ['chat', 'payment', 'oauth'];
-                b.classList.toggle('active', panels[i] === name);
-            });
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-' + name).classList.add('active');
-        }
+  <!-- ===== OAUTH ===== -->
+  <div class="section" id="section-oauth">
+    <div class="section-body">
+      <div class="table-wrap" style="padding:24px">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:6px;color:#1e293b">&#128279; Links de Conexión a Mercado Pago</h3>
+        <p style="font-size:13px;color:#64748b;margin-bottom:20px">Generá el link OAuth para que cada veterinaria conecte su cuenta de Mercado Pago.</p>
+        <div id="oauthList" class="oauth-list">
+          <div style="color:#94a3b8;font-size:13px">Cargando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /main -->
 
-        // ===================== VET LOADER =====================
-        async function loadVets() {
-            try {
-                const res = await fetch(`${API}/backoffice/vets`);
-                const data = await res.json();
-                vetList = data.vets || [];
+<!-- ===== MODALS ===== -->
 
-                // Chat selector
-                const chatSel = document.getElementById('vetSelect');
-                chatSel.innerHTML = '<option value="">-- Seleccionar veterinaria --</option>';
-                vetList.forEach(v => {
-                    const o = document.createElement('option');
-                    o.value = JSON.stringify(v);
-                    o.textContent = `${v.name} (${v.vet_id})`;
-                    chatSel.appendChild(o);
-                });
-                chatSel.onchange = () => {
-                    if (!chatSel.value) return;
-                    selectedVet = JSON.parse(chatSel.value);
-                    document.getElementById('vetName').textContent = selectedVet.name;
-                    document.getElementById('vetSubtitle').textContent = `ID: ${selectedVet.vet_id} | ${selectedVet.whatsapp_e164}`;
-                    document.getElementById('vetMessages').innerHTML = `
-                        <div class="msg agent">
-                            <div>Conectado como <strong>${selectedVet.name}</strong>. Empezá a chatear!</div>
-                            <div class="msg-time">${time()}</div>
-                        </div>`;
-                };
+<!-- VET MODAL -->
+<div class="modal-overlay" id="vetModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="vetModalTitle">Nueva Veterinaria</h3>
+      <button class="modal-close" onclick="closeModal('vetModal')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <input type="hidden" id="vm-vet-id">
+        <div class="form-group form-col-2"><label>Nombre *</label><input type="text" id="vm-name" placeholder="Vet San Martín"></div>
+        <div class="form-group"><label>WhatsApp *</label><input type="text" id="vm-phone" placeholder="+5491100000000"></div>
+        <div class="form-group"><label>Contacto</label><input type="text" id="vm-contact" placeholder="Dr. Juan Pérez"></div>
+        <div class="form-group form-col-2"><label>Dirección</label><input type="text" id="vm-address" placeholder="Av. Rivadavia 1234, CABA"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="vm-email" placeholder="vet@ejemplo.com"></div>
+        <div class="form-group"><label>ID Distribuidor</label><input type="text" id="vm-dist" placeholder="DIST-001"></div>
+        <div class="form-group" id="vm-active-group" style="display:none">
+          <label>Estado</label>
+          <select id="vm-active"><option value="true">Activa</option><option value="false">Inactiva</option></select>
+        </div>
+      </div>
+      <div class="result-box" id="vetModalResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('vetModal')">Cancelar</button>
+      <button class="btn btn-primary" id="vetModalBtn" onclick="submitVet()">Guardar</button>
+    </div>
+  </div>
+</div>
 
-                // Payment selector
-                const paySel = document.getElementById('payVetSelect');
-                paySel.innerHTML = '<option value="">-- Seleccionar veterinaria --</option>';
-                vetList.forEach(v => {
-                    const o = document.createElement('option');
-                    o.value = v.vet_id;
-                    o.textContent = `${v.name} (${v.vet_id})${v.mp_connected ? ' ✓' : ' — sin MP'}`;
-                    paySel.appendChild(o);
-                });
+<!-- CUSTOMER MODAL -->
+<div class="modal-overlay" id="custModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="custModalTitle">Nuevo Cliente</h3>
+      <button class="modal-close" onclick="closeModal('custModal')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <input type="hidden" id="cm-customer-id">
+        <div class="form-group"><label>Veterinaria *</label><select id="cm-vet"></select></div>
+        <div class="form-group"><label>&nbsp;</label><span></span></div>
+        <div class="form-group"><label>Nombre *</label><input type="text" id="cm-name" placeholder="Juan"></div>
+        <div class="form-group"><label>Apellido *</label><input type="text" id="cm-lname" placeholder="García"></div>
+        <div class="form-group"><label>Email *</label><input type="email" id="cm-email" placeholder="juan@email.com"></div>
+        <div class="form-group"><label>WhatsApp *</label><input type="text" id="cm-phone" placeholder="+5491100000000"></div>
+        <div class="form-group form-col-2"><label>Dirección</label><input type="text" id="cm-address" placeholder="Calle 123, Ciudad"></div>
+        <div class="form-group"><label>Tipo mascota</label><input type="text" id="cm-pet-type" placeholder="Perro / Gato"></div>
+        <div class="form-group"><label>Nombre mascota</label><input type="text" id="cm-pet-name" placeholder="Firulais"></div>
+        <div class="form-group form-col-2"><label>Notas</label><textarea id="cm-notes" placeholder="Observaciones..."></textarea></div>
+      </div>
+      <div class="result-box" id="custModalResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('custModal')">Cancelar</button>
+      <button class="btn btn-primary" id="custModalBtn" onclick="submitCustomer()">Guardar</button>
+    </div>
+  </div>
+</div>
 
-                // OAuth list
-                renderOauthList();
+<!-- PRODUCT MODAL -->
+<div class="modal-overlay" id="productModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="productModalTitle">Nuevo Producto</h3>
+      <button class="modal-close" onclick="closeModal('productModal')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>SKU *</label><input type="text" id="pm-sku" placeholder="RC-DOG-001"></div>
+        <div class="form-group"><label>EAN</label><input type="text" id="pm-ean" placeholder="7891234567890"></div>
+        <div class="form-group form-col-2"><label>Nombre *</label><input type="text" id="pm-name" placeholder="Royal Canin Medium Adult"></div>
+        <div class="form-group"><label>Presentación</label><input type="text" id="pm-pres" placeholder="15 kg"></div>
+        <div class="form-group"><label>Moneda</label><select id="pm-currency"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        <div class="form-group"><label>Precio Cliente *</label><input type="number" id="pm-price-cust" placeholder="15000" step="0.01"></div>
+        <div class="form-group"><label>Precio Distribuidor *</label><input type="number" id="pm-price-dist" placeholder="12000" step="0.01"></div>
+        <div class="form-group"><label>Stock *</label><input type="number" id="pm-stock" placeholder="50" min="0"></div>
+        <div class="form-group form-col-2"><label>Descripción</label><textarea id="pm-desc" placeholder="Descripción del producto..."></textarea></div>
+        <div class="form-group">
+          <label>Activo</label>
+          <select id="pm-active"><option value="true">Sí</option><option value="false">No</option></select>
+        </div>
+      </div>
+      <div class="result-box" id="productModalResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('productModal')">Cancelar</button>
+      <button class="btn btn-primary" id="productModalBtn" onclick="submitProduct()">Guardar</button>
+    </div>
+  </div>
+</div>
 
-            } catch (err) {
-                console.error('Error loading vets:', err);
-                document.getElementById('vetSelect').innerHTML = '<option value="">Error al cargar</option>';
-            }
-        }
+<!-- CSV MODAL -->
+<div class="modal-overlay" id="csvModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Importar Catálogo CSV</h3>
+      <button class="modal-close" onclick="closeModal('csvModal')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#64748b;margin-bottom:14px">
+        Columnas requeridas: <strong>sku, product_name, price_customer, price_distributor, stock</strong><br>
+        Columnas opcionales: ean, presentation, description, currency, active
+      </p>
+      <div class="drop-zone" id="csvDropZone" onclick="document.getElementById('csvFileInput').click()">
+        <div class="drop-icon">&#128196;</div>
+        <p>Clic o arrastrá el archivo CSV aquí</p>
+        <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="onCsvFileSelected()">
+      </div>
+      <div id="csvFileName" style="margin-top:8px;font-size:12px;color:#64748b"></div>
+      <div class="result-box" id="csvResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('csvModal')">Cancelar</button>
+      <button class="btn btn-primary" id="csvUploadBtn" onclick="uploadCsv()" disabled>&#8679; Importar</button>
+    </div>
+  </div>
+</div>
 
-        function renderOauthList() {
-            const container = document.getElementById('oauthVetList');
-            if (!vetList.length) {
-                container.innerHTML = '<div style="color:#aaa;font-size:13px;padding:10px 0">No hay veterinarias registradas.</div>';
-                return;
-            }
-            container.innerHTML = '';
-            vetList.forEach(v => {
-                const div = document.createElement('div');
-                div.id = `vet-item-${v.vet_id}`;
-                div.innerHTML = `
-                    <div class="vet-item">
-                        <div class="vet-avatar">${v.name.charAt(0).toUpperCase()}</div>
-                        <div class="vet-details">
-                            <div class="vet-name">${v.name}</div>
-                            <div class="vet-meta">ID: ${v.vet_id} &bull; ${v.whatsapp_e164}</div>
-                        </div>
-                        <span class="mp-badge ${v.mp_connected ? 'connected' : 'disconnected'}">
-                            ${v.mp_connected ? '&#10003; MP conectado' : '&#10007; Sin MP'}
-                        </span>
-                        <button class="btn-primary" onclick="genOAuthLink('${v.vet_id}')" id="oauthBtn-${v.vet_id}" style="font-size:12px;padding:8px 14px">
-                            &#128279; Generar link
-                        </button>
-                    </div>
-                    <div class="vet-oauth-result" id="oauthResult-${v.vet_id}">
-                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#3949ab;margin-bottom:6px">Link OAuth generado</div>
-                        <div class="oauth-link" id="oauthLink-${v.vet_id}"></div>
-                        <button class="copy-btn" onclick="copyLink('oauthLink-${v.vet_id}', 'oauthCopy-${v.vet_id}')" id="oauthCopy-${v.vet_id}">
-                            &#128203; Copiar
-                        </button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
+<!-- ===================== JS ===================== -->
+<script>
+const API = '';
+let allVets = [];
+let nvCart = [];
+let nvShippingCost = 0;
+let nvCurrentStep = 1;
+let selectedChatVet = null;
+let csvFileData = null;
 
-        // ===================== CHAT =====================
-        function handleKey(event, type) {
-            if (event.key === 'Enter') sendMsg(type);
-        }
+// ===================== INIT =====================
+document.addEventListener('DOMContentLoaded', () => {
+  loadVets();
+  document.getElementById('chatClientPhone').addEventListener('input', function() {
+    document.getElementById('chatClientSub').textContent = this.value || '—';
+  });
+  setupCsvDrop();
+});
 
-        async function sendMsg(type) {
-            const input = document.getElementById(`${type}Input`);
-            const messages = document.getElementById(`${type}Messages`);
-            const sendBtn = document.getElementById(`${type}Send`);
-            const text = input.value.trim();
-            if (!text) return;
+// ===================== SECTION NAVIGATION =====================
+const sectionTitles = {
+  vets:'Veterinarias', customers:'Clientes', catalog:'Catálogo',
+  orders:'Órdenes', 'new-order':'Nueva Orden', payments:'Pagos MP',
+  chat:'Chat Agente', oauth:'Conectar MP'
+};
 
-            if (type === 'vet' && !selectedVet) {
-                alert('Seleccioná una veterinaria primero.');
-                return;
-            }
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  document.getElementById('topbarTitle').textContent = sectionTitles[name] || name;
 
-            addMsg(messages, text, 'user');
-            input.value = '';
-            sendBtn.disabled = true;
-            const typingId = showTyping(messages);
+  const navMap = {vets:0, customers:1, catalog:2, orders:3, 'new-order':3, payments:4, chat:5, oauth:6};
+  const idx = navMap[name];
+  if (idx !== undefined) document.querySelectorAll('.nav-item')[idx].classList.add('active');
 
-            try {
-                const endpoint = type === 'vet' ? '/backoffice/vet/message' : '/backoffice/client/message';
-                const body = type === 'vet'
-                    ? { vet_id: selectedVet.vet_id, phone: selectedVet.whatsapp_e164, message: text }
-                    : { phone: document.getElementById('clientPhone').value, message: text };
+  // Lazy loads
+  if (name === 'customers' && document.getElementById('custTableBody').textContent.includes('Seleccioná')) {
+    populateVetSelects();
+  }
+  if (name === 'catalog') loadCatalog();
+  if (name === 'orders') { populateVetSelects(); loadOrders(); }
+  if (name === 'new-order') initNewOrder();
+  if (name === 'payments') populatePayVet();
+  if (name === 'oauth') loadOauthList();
+  if (name === 'chat') populateChatVet();
+}
 
-                const res = await fetch(`${API}${endpoint}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
-                });
-                const data = await res.json();
-                removeTyping(typingId);
-                addMsg(messages, data.response || data.error || 'Sin respuesta', 'agent');
-            } catch (err) {
-                removeTyping(typingId);
-                addMsg(messages, `Error: ${err.message}`, 'agent');
-            }
+// ===================== VETS =====================
+async function loadVets() {
+  try {
+    const res = await fetch(`${API}/backoffice/vets`);
+    const data = await res.json();
+    allVets = data.vets || [];
+    renderVets(allVets);
+    populateVetSelects();
+  } catch(e) {
+    document.getElementById('vetTableBody').innerHTML = `<tr class="empty-row"><td colspan="8">Error al cargar: ${e.message}</td></tr>`;
+  }
+}
 
-            sendBtn.disabled = false;
-            input.focus();
-        }
+function renderVets(vets) {
+  const tb = document.getElementById('vetTableBody');
+  if (!vets.length) { tb.innerHTML = '<tr class="empty-row"><td colspan="8">Sin resultados</td></tr>'; return; }
+  tb.innerHTML = vets.map(v => `
+    <tr>
+      <td><code style="font-size:11px">${v.vet_id}</code></td>
+      <td><strong>${esc(v.name)}</strong></td>
+      <td>${esc(v.contact_name)}</td>
+      <td>${esc(v.whatsapp_e164)}</td>
+      <td>${esc(v.email)}</td>
+      <td>${v.active ? '<span class="badge badge-green">Activa</span>' : '<span class="badge badge-red">Inactiva</span>'}</td>
+      <td>${v.mp_connected ? '<span class="badge badge-blue">Conectado</span>' : '<span class="badge badge-gray">Sin MP</span>'}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick='editVet(${JSON.stringify(v)})'>Editar</button></td>
+    </tr>`).join('');
+}
 
-        function addMsg(container, text, type) {
-            const div = document.createElement('div');
-            div.className = `msg ${type}`;
-            div.innerHTML = `<div>${fmt(text)}</div><div class="msg-time">${time()}</div>`;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        }
+function filterVets() {
+  const q = document.getElementById('vetSearch').value.toLowerCase();
+  renderVets(allVets.filter(v =>
+    (v.name+v.email+v.contact_name+v.whatsapp_e164).toLowerCase().includes(q)
+  ));
+}
 
-        function fmt(text) {
-            return text
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/\n/g, '<br>');
-        }
+function openVetModal(vet) {
+  document.getElementById('vetModalTitle').textContent = 'Nueva Veterinaria';
+  document.getElementById('vm-vet-id').value = '';
+  document.getElementById('vm-name').value = '';
+  document.getElementById('vm-phone').value = '';
+  document.getElementById('vm-contact').value = '';
+  document.getElementById('vm-address').value = '';
+  document.getElementById('vm-email').value = '';
+  document.getElementById('vm-dist').value = '';
+  document.getElementById('vm-active-group').style.display = 'none';
+  hideResult('vetModalResult');
+  openModal('vetModal');
+}
 
-        let typingCtr = 0;
-        function showTyping(container) {
-            const id = `typing-${++typingCtr}`;
-            const div = document.createElement('div');
-            div.className = 'typing'; div.id = id;
-            div.innerHTML = '<span></span><span></span><span></span>';
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-            return id;
-        }
-        function removeTyping(id) {
-            const el = document.getElementById(id);
-            if (el) el.remove();
-        }
+function editVet(v) {
+  document.getElementById('vetModalTitle').textContent = 'Editar Veterinaria';
+  document.getElementById('vm-vet-id').value = v.vet_id;
+  document.getElementById('vm-name').value = v.name;
+  document.getElementById('vm-phone').value = v.whatsapp_e164;
+  document.getElementById('vm-contact').value = v.contact_name || '';
+  document.getElementById('vm-address').value = v.address || '';
+  document.getElementById('vm-email').value = v.email || '';
+  document.getElementById('vm-dist').value = v.distributor_id || '';
+  document.getElementById('vm-active-group').style.display = 'block';
+  document.getElementById('vm-active').value = v.active ? 'true' : 'false';
+  hideResult('vetModalResult');
+  openModal('vetModal');
+}
 
-        function clearChats() {
-            document.getElementById('vetMessages').innerHTML = '<div class="msg agent"><div>Chat limpiado.</div></div>';
-            document.getElementById('clientMessages').innerHTML = '<div class="msg agent"><div>Chat limpiado.</div></div>';
-        }
+async function submitVet() {
+  const vetId = document.getElementById('vm-vet-id').value;
+  const isEdit = !!vetId;
+  const body = {
+    name: document.getElementById('vm-name').value.trim(),
+    whatsapp_e164: document.getElementById('vm-phone').value.trim(),
+    contact_name: document.getElementById('vm-contact').value.trim() || null,
+    address: document.getElementById('vm-address').value.trim() || null,
+    email: document.getElementById('vm-email').value.trim() || null,
+    distributor_id: document.getElementById('vm-dist').value.trim() || null,
+  };
+  if (!body.name || !body.whatsapp_e164) { showResult('vetModalResult', false, 'Nombre y WhatsApp son obligatorios'); return; }
 
-        // ===================== PAYMENT LINK =====================
-        async function generatePaymentLink() {
-            const vetId = document.getElementById('payVetSelect').value;
-            const orderId = document.getElementById('payOrderId').value.trim();
-            const btn = document.getElementById('payBtn');
-            const result = document.getElementById('payResult');
+  const btn = document.getElementById('vetModalBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
 
-            if (!vetId || !orderId) {
-                alert('Completá la veterinaria y el ID del pedido.');
-                return;
-            }
+  try {
+    let res;
+    if (isEdit) {
+      if (document.getElementById('vm-active-group').style.display !== 'none')
+        body.active = document.getElementById('vm-active').value === 'true';
+      res = await fetch(`${API}/backoffice/vets/${vetId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    } else {
+      res = await fetch(`${API}/backoffice/vets`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    }
+    const data = await res.json();
+    if (res.ok) { showResult('vetModalResult', true, isEdit ? 'Veterinaria actualizada' : `Veterinaria creada: ${data.vet?.vet_id || ''}`); loadVets(); }
+    else showResult('vetModalResult', false, data.error || 'Error');
+  } catch(e) { showResult('vetModalResult', false, e.message); }
 
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span> Generando...';
-            result.style.display = 'none';
+  btn.disabled = false; btn.textContent = 'Guardar';
+}
 
-            try {
-                const res = await fetch(`${API}/backoffice/payment-link`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ vet_id: vetId, order_id: orderId }),
-                });
-                const data = await res.json();
+// ===================== CUSTOMERS =====================
+async function loadCustomers() {
+  const vetId = document.getElementById('custVetFilter').value;
+  const search = document.getElementById('custSearch').value.trim();
+  if (!vetId && !search) { document.getElementById('custTableBody').innerHTML = '<tr class="empty-row"><td colspan="7">Filtrá por vet o buscá para ver clientes.</td></tr>'; return; }
+  try {
+    const params = new URLSearchParams();
+    if (vetId) params.set('vet_id', vetId);
+    if (search) params.set('search', search);
+    const res = await fetch(`${API}/backoffice/customers?${params}`);
+    const data = await res.json();
+    renderCustomers(data.customers || []);
+  } catch(e) { console.error(e); }
+}
 
-                result.style.display = 'block';
-                const label = document.getElementById('payResultLabel');
-                const link = document.getElementById('payResultLink');
-                const msg = document.getElementById('payResultMsg');
-                const copyBtn = document.getElementById('payCopyBtn');
+function renderCustomers(custs) {
+  const tb = document.getElementById('custTableBody');
+  if (!custs.length) { tb.innerHTML = '<tr class="empty-row"><td colspan="7">Sin resultados</td></tr>'; return; }
+  tb.innerHTML = custs.map(c => `
+    <tr>
+      <td><code style="font-size:11px">${esc(c.customer_id)}</code></td>
+      <td>${esc(c.name)} ${esc(c.lastname)}</td>
+      <td>${esc(c.whatsapp_e164)}</td>
+      <td>${esc(c.email)}</td>
+      <td>${esc(vetName(c.vet_id))}</td>
+      <td>${c.pet_type ? esc(c.pet_type)+(c.pet_name?' — '+esc(c.pet_name):'') : '—'}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick='editCust(${JSON.stringify(c)})'>Editar</button></td>
+    </tr>`).join('');
+}
 
-                if (data.status === 'success') {
-                    result.className = 'result-box success';
-                    label.textContent = 'Link generado';
-                    link.textContent = data.payment_url;
-                    msg.textContent = '';
-                    copyBtn.style.display = 'inline-flex';
-                    copyBtn.textContent = '📋 Copiar link';
-                    copyBtn.classList.remove('copied');
-                } else {
-                    result.className = 'result-box error';
-                    label.textContent = 'Error';
-                    link.textContent = '';
-                    msg.textContent = data.message || 'Error desconocido';
-                    copyBtn.style.display = 'none';
-                }
-            } catch (err) {
-                result.style.display = 'block';
-                result.className = 'result-box error';
-                document.getElementById('payResultLabel').textContent = 'Error';
-                document.getElementById('payResultLink').textContent = '';
-                document.getElementById('payResultMsg').textContent = err.message;
-                document.getElementById('payCopyBtn').style.display = 'none';
-            }
+function openCustModal() {
+  document.getElementById('custModalTitle').textContent = 'Nuevo Cliente';
+  document.getElementById('cm-customer-id').value = '';
+  ['cm-vet','cm-name','cm-lname','cm-email','cm-phone','cm-address','cm-pet-type','cm-pet-name','cm-notes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  populateCmVet();
+  hideResult('custModalResult');
+  openModal('custModal');
+}
 
-            btn.disabled = false;
-            btn.innerHTML = '&#128279; Generar link';
-        }
+function editCust(c) {
+  document.getElementById('custModalTitle').textContent = 'Editar Cliente';
+  document.getElementById('cm-customer-id').value = c.customer_id;
+  document.getElementById('cm-vet').value = c.vet_id;
+  document.getElementById('cm-name').value = c.name;
+  document.getElementById('cm-lname').value = c.lastname;
+  document.getElementById('cm-email').value = c.email;
+  document.getElementById('cm-phone').value = c.whatsapp_e164;
+  document.getElementById('cm-address').value = c.address || '';
+  document.getElementById('cm-pet-type').value = c.pet_type || '';
+  document.getElementById('cm-pet-name').value = c.pet_name || '';
+  document.getElementById('cm-notes').value = c.notes || '';
+  populateCmVet(c.vet_id);
+  hideResult('custModalResult');
+  openModal('custModal');
+}
 
-        // ===================== OAUTH LINK =====================
-        async function genOAuthLink(vetId) {
-            const btn = document.getElementById(`oauthBtn-${vetId}`);
-            const resultDiv = document.getElementById(`oauthResult-${vetId}`);
-            const linkDiv = document.getElementById(`oauthLink-${vetId}`);
+async function submitCustomer() {
+  const custId = document.getElementById('cm-customer-id').value;
+  const isEdit = !!custId;
+  const btn = document.getElementById('custModalBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
 
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    let res;
+    if (isEdit) {
+      const body = {
+        address: document.getElementById('cm-address').value.trim() || null,
+        email: document.getElementById('cm-email').value.trim() || null,
+        whatsapp_e164: document.getElementById('cm-phone').value.trim() || null,
+        pet_type: document.getElementById('cm-pet-type').value.trim() || null,
+        pet_name: document.getElementById('cm-pet-name').value.trim() || null,
+        notes: document.getElementById('cm-notes').value.trim() || null,
+      };
+      res = await fetch(`${API}/backoffice/customers/${custId}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    } else {
+      const body = {
+        vet_id: document.getElementById('cm-vet').value,
+        name: document.getElementById('cm-name').value.trim(),
+        lastname: document.getElementById('cm-lname').value.trim(),
+        email: document.getElementById('cm-email').value.trim(),
+        whatsapp_e164: document.getElementById('cm-phone').value.trim(),
+        address: document.getElementById('cm-address').value.trim() || null,
+        pet_type: document.getElementById('cm-pet-type').value.trim() || null,
+        pet_name: document.getElementById('cm-pet-name').value.trim() || null,
+        notes: document.getElementById('cm-notes').value.trim() || null,
+      };
+      if (!body.vet_id || !body.name || !body.lastname || !body.email || !body.whatsapp_e164) {
+        showResult('custModalResult', false, 'Completá los campos obligatorios'); btn.disabled=false; btn.textContent='Guardar'; return;
+      }
+      res = await fetch(`${API}/backoffice/customers`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    }
+    const data = await res.json();
+    if (res.ok) { showResult('custModalResult', true, isEdit ? 'Cliente actualizado' : `Cliente creado: ${data.customer_id}`); loadCustomers(); }
+    else showResult('custModalResult', false, data.error || 'Error');
+  } catch(e) { showResult('custModalResult', false, e.message); }
+  btn.disabled = false; btn.textContent = 'Guardar';
+}
 
-            try {
-                const res = await fetch(`${API}/backoffice/oauth-link/${vetId}`, {
-                    method: 'POST',
-                });
-                const data = await res.json();
+// ===================== CATALOG =====================
+async function loadCatalog() {
+  const search = document.getElementById('catSearch').value.trim();
+  const params = new URLSearchParams();
+  if (search) params.set('search', search);
+  else params.set('active_only', 'false');
+  try {
+    const res = await fetch(`${API}/backoffice/catalog?${params}`);
+    const data = await res.json();
+    renderCatalog(data.products || []);
+  } catch(e) { console.error(e); }
+}
 
-                if (data.status === 'success') {
-                    linkDiv.textContent = data.redirect_url;
-                    resultDiv.style.display = 'block';
-                } else {
-                    alert(data.message || 'Error al generar link OAuth');
-                }
-            } catch (err) {
-                alert(`Error: ${err.message}`);
-            }
+function renderCatalog(prods) {
+  const tb = document.getElementById('catTableBody');
+  if (!prods.length) { tb.innerHTML = '<tr class="empty-row"><td colspan="8">Sin productos</td></tr>'; return; }
+  tb.innerHTML = prods.map(p => `
+    <tr>
+      <td><code style="font-size:11px">${esc(p.sku)}</code></td>
+      <td>${esc(p.product_name)}</td>
+      <td>${esc(p.presentation)}</td>
+      <td>$${fmt(p.price_customer)}</td>
+      <td>$${fmt(p.price_distributor)}</td>
+      <td>${p.stock}</td>
+      <td>${p.active ? '<span class="badge badge-green">Sí</span>' : '<span class="badge badge-red">No</span>'}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick='editProduct(${JSON.stringify(p)})'>Editar</button></td>
+    </tr>`).join('');
+}
 
-            btn.disabled = false;
-            btn.innerHTML = '&#128279; Generar link';
-        }
+function openProductModal() {
+  document.getElementById('productModalTitle').textContent = 'Nuevo Producto';
+  ['pm-sku','pm-ean','pm-name','pm-pres','pm-price-cust','pm-price-dist','pm-stock','pm-desc'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('pm-currency').value = 'ARS';
+  document.getElementById('pm-active').value = 'true';
+  document.getElementById('pm-sku').readOnly = false;
+  hideResult('productModalResult');
+  openModal('productModal');
+}
 
-        // ===================== COPY HELPER =====================
-        function copyLink(elId, btnId) {
-            const text = document.getElementById(elId).textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = document.getElementById(btnId);
-                const orig = btn.innerHTML;
-                btn.innerHTML = '&#10003; Copiado!';
-                btn.classList.add('copied');
-                setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
-            });
-        }
+function editProduct(p) {
+  document.getElementById('productModalTitle').textContent = 'Editar Producto';
+  document.getElementById('pm-sku').value = p.sku; document.getElementById('pm-sku').readOnly = true;
+  document.getElementById('pm-ean').value = p.ean || '';
+  document.getElementById('pm-name').value = p.product_name;
+  document.getElementById('pm-pres').value = p.presentation || '';
+  document.getElementById('pm-price-cust').value = p.price_customer;
+  document.getElementById('pm-price-dist').value = p.price_distributor;
+  document.getElementById('pm-stock').value = p.stock;
+  document.getElementById('pm-desc').value = p.description || '';
+  document.getElementById('pm-currency').value = p.currency || 'ARS';
+  document.getElementById('pm-active').value = p.active ? 'true' : 'false';
+  hideResult('productModalResult');
+  openModal('productModal');
+}
 
-        function time() {
-            return new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-        }
-    </script>
+async function submitProduct() {
+  const body = {
+    sku: document.getElementById('pm-sku').value.trim(),
+    product_name: document.getElementById('pm-name').value.trim(),
+    price_customer: parseFloat(document.getElementById('pm-price-cust').value),
+    price_distributor: parseFloat(document.getElementById('pm-price-dist').value),
+    stock: parseInt(document.getElementById('pm-stock').value),
+    ean: document.getElementById('pm-ean').value.trim() || null,
+    presentation: document.getElementById('pm-pres').value.trim() || null,
+    description: document.getElementById('pm-desc').value.trim() || null,
+    currency: document.getElementById('pm-currency').value,
+    active: document.getElementById('pm-active').value === 'true',
+  };
+  if (!body.sku || !body.product_name) { showResult('productModalResult', false, 'SKU y Nombre son obligatorios'); return; }
+  const btn = document.getElementById('productModalBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const res = await fetch(`${API}/backoffice/catalog/product`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const data = await res.json();
+    if (res.ok) { showResult('productModalResult', true, `Producto ${data.action}: ${data.sku}`); loadCatalog(); }
+    else showResult('productModalResult', false, data.error || 'Error');
+  } catch(e) { showResult('productModalResult', false, e.message); }
+  btn.disabled = false; btn.textContent = 'Guardar';
+}
+
+// ===== CSV =====
+function openCsvModal() { csvFileData = null; document.getElementById('csvFileName').textContent = ''; document.getElementById('csvUploadBtn').disabled = true; hideResult('csvResult'); openModal('csvModal'); }
+function onCsvFileSelected() {
+  const f = document.getElementById('csvFileInput').files[0];
+  if (f) { csvFileData = f; document.getElementById('csvFileName').textContent = '&#128196; ' + f.name; document.getElementById('csvUploadBtn').disabled = false; }
+}
+function setupCsvDrop() {
+  const dz = document.getElementById('csvDropZone');
+  if (!dz) return;
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('dragging'); const f = e.dataTransfer.files[0]; if (f) { csvFileData = f; document.getElementById('csvFileName').textContent = '&#128196; '+f.name; document.getElementById('csvUploadBtn').disabled = false; } });
+}
+async function uploadCsv() {
+  if (!csvFileData) return;
+  const btn = document.getElementById('csvUploadBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Importando...';
+  try {
+    const fd = new FormData(); fd.append('file', csvFileData);
+    const res = await fetch(`${API}/backoffice/catalog/csv`, { method:'POST', body:fd });
+    const data = await res.json();
+    if (res.ok) {
+      showResult('csvResult', true, `&#10003; Creados: ${data.created} | Actualizados: ${data.updated}${data.errors?.length ? ' | Errores: '+data.errors.join(', ') : ''}`);
+      loadCatalog();
+    } else showResult('csvResult', false, data.error || 'Error');
+  } catch(e) { showResult('csvResult', false, e.message); }
+  btn.disabled = false; btn.innerHTML = '&#8679; Importar';
+}
+
+// ===================== ORDERS =====================
+async function loadOrders() {
+  const vetId = document.getElementById('ordVetFilter').value;
+  const status = document.getElementById('ordStatusFilter').value;
+  const search = document.getElementById('ordSearch').value.trim();
+  const params = new URLSearchParams();
+  if (vetId) params.set('vet_id', vetId);
+  if (status) params.set('status', status);
+  if (search) params.set('search', search);
+  params.set('limit', '150');
+  try {
+    const res = await fetch(`${API}/backoffice/orders?${params}`);
+    const data = await res.json();
+    renderOrders(data.orders || []);
+  } catch(e) { console.error(e); }
+}
+
+function renderOrders(orders) {
+  const tb = document.getElementById('ordTableBody');
+  if (!orders.length) { tb.innerHTML = '<tr class="empty-row"><td colspan="10">Sin órdenes</td></tr>'; return; }
+  tb.innerHTML = orders.map(o => `
+    <tr>
+      <td><code style="font-size:11px">${esc(o.order_id)}</code></td>
+      <td>${esc(vetName(o.vet_id))}</td>
+      <td>${esc(o.customer_name)}<br><span style="font-size:11px;color:#94a3b8">${esc(o.customer_phone)}</span></td>
+      <td><span class="badge ${o.delivery_mode==='DELIVERY'?'badge-blue':'badge-gray'}">${o.delivery_mode}</span>${o.delivery_zone?' <span style="font-size:11px;color:#94a3b8">'+esc(o.delivery_zone)+'</span>':''}</td>
+      <td>${o.items_count}</td>
+      <td><strong>$${fmt(o.total_amount)}</strong></td>
+      <td>${statusBadge(o.status)}</td>
+      <td>${o.payment_method ? '<span class="badge badge-gray" style="font-size:10px">'+esc(o.payment_method)+'</span>' : '—'}</td>
+      <td style="font-size:11px;color:#94a3b8">${fmtDate(o.created_at)}</td>
+      <td>
+        ${o.payment_method==='MERCADOPAGO' ? `<button class="btn btn-secondary btn-sm" onclick="quickMpCheck('${o.order_id}')">MP &#128270;</button>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+function statusBadge(s) {
+  const map = {
+    CREATED:'badge-gray', PAYMENT_PENDING_MP:'badge-yellow', PAYMENT_AT_VET:'badge-yellow',
+    PAYMENT_APPROVED:'badge-green', PAYMENT_REJECTED:'badge-red', PREPARING:'badge-blue',
+    READY_FOR_PICKUP:'badge-purple', OUT_FOR_DELIVERY:'badge-blue', DELIVERED:'badge-green',
+    COMPLETED:'badge-green', CANCELLED:'badge-red'
+  };
+  return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+
+function quickMpCheck(orderId) {
+  showSection('payments');
+  document.getElementById('mp-check-order').value = orderId;
+  setTimeout(checkMpStatus, 200);
+}
+
+// ===================== NEW ORDER WIZARD =====================
+let wizardZones = [];
+async function initNewOrder() {
+  nvCart = []; nvShippingCost = 0; nvCurrentStep = 1;
+  document.querySelectorAll('.wizard-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.wizard-step').forEach(s => { s.classList.remove('active','done'); });
+  document.getElementById('wp1').classList.add('active');
+  document.getElementById('ws1').classList.add('active');
+  document.getElementById('nv-cart-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:16px">Carrito vacío</td></tr>';
+  document.getElementById('nv-cart-total').textContent = 'Total productos: $0.00';
+  document.getElementById('nv-create-result').style.display = 'none';
+  document.getElementById('nv-create-btn').disabled = false;
+
+  // Populate vet
+  const sel = document.getElementById('nv-vet');
+  sel.innerHTML = '<option value="">Seleccioná...</option>';
+  allVets.filter(v => v.active).forEach(v => {
+    const o = document.createElement('option'); o.value = v.vet_id; o.textContent = v.name; sel.appendChild(o);
+  });
+
+  // Load shipping zones
+  try {
+    const res = await fetch(`${API}/backoffice/shipping-zones`);
+    const data = await res.json();
+    wizardZones = data.zones || [];
+    const zSel = document.getElementById('nv-zone');
+    zSel.innerHTML = '<option value="">Seleccioná zona...</option>';
+    wizardZones.forEach(z => { const o = document.createElement('option'); o.value = z.zone; o.textContent = `${z.zone} — $${z.price.toLocaleString()}`; zSel.appendChild(o); });
+  } catch(e) {}
+}
+
+function onWizardVetChange() {}
+
+function wizardNext(step) {
+  if (step === 1 && !document.getElementById('nv-vet').value) { alert('Seleccioná una veterinaria'); return; }
+  if (step === 2) {
+    const fn = document.getElementById('nv-fname').value.trim();
+    const ln = document.getElementById('nv-lname').value.trim();
+    const em = document.getElementById('nv-email').value.trim();
+    const ph = document.getElementById('nv-phone').value.trim();
+    if (!fn || !ln || !em || !ph) { alert('Completá todos los datos del cliente'); return; }
+  }
+  if (step === 3 && nvCart.length === 0) { alert('Agregá al menos un producto'); return; }
+  if (step === 4) buildSummary();
+  goWizardStep(step + 1);
+}
+
+function wizardBack(step) { goWizardStep(step - 1); }
+
+function goWizardStep(step) {
+  nvCurrentStep = step;
+  document.querySelectorAll('.wizard-panel').forEach((p,i) => p.classList.toggle('active', i+1===step));
+  document.querySelectorAll('.wizard-step').forEach((s,i) => {
+    s.classList.remove('active','done');
+    if (i+1 === step) s.classList.add('active');
+    else if (i+1 < step) s.classList.add('done');
+  });
+}
+
+function onDeliveryChange() {
+  const isDelivery = document.getElementById('nv-delivery').value === 'DELIVERY';
+  const df = document.getElementById('delivery-fields');
+  df.style.display = isDelivery ? 'block' : 'none';
+  if (!isDelivery) { nvShippingCost = 0; document.getElementById('nv-shipping-display').value = '$0.00'; }
+}
+
+async function onZoneChange() {
+  const zone = document.getElementById('nv-zone').value;
+  if (!zone) { nvShippingCost = 0; document.getElementById('nv-shipping-display').value = '$0.00'; return; }
+  const found = wizardZones.find(z => z.zone === zone);
+  nvShippingCost = found ? found.price : 0;
+  document.getElementById('nv-shipping-display').value = `$${Number(nvShippingCost).toLocaleString('es-AR')}`;
+}
+
+async function searchCustomerForOrder() {
+  const q = document.getElementById('nv-cust-search').value.trim();
+  const vetId = document.getElementById('nv-vet').value;
+  if (!q || !vetId) { alert('Seleccioná una vet y escribí el término de búsqueda'); return; }
+  const params = new URLSearchParams({ vet_id: vetId, search: q });
+  const res = await fetch(`${API}/backoffice/customers?${params}`);
+  const data = await res.json();
+  const custs = data.customers || [];
+  const container = document.getElementById('nv-cust-results');
+  if (!custs.length) { container.innerHTML = '<div style="font-size:12px;color:#94a3b8">Sin resultados</div>'; return; }
+  container.innerHTML = custs.slice(0,5).map(c => `
+    <div style="padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;cursor:pointer;margin-bottom:5px;font-size:13px"
+         onclick="fillCustomerFromResult('${esc(c.name)}','${esc(c.lastname)}','${esc(c.email)}','${esc(c.whatsapp_e164)}')">
+      <strong>${esc(c.name)} ${esc(c.lastname)}</strong> — ${esc(c.whatsapp_e164)} — ${esc(c.email)}
+    </div>`).join('');
+}
+
+function fillCustomerFromResult(name, lname, email, phone) {
+  document.getElementById('nv-fname').value = name;
+  document.getElementById('nv-lname').value = lname;
+  document.getElementById('nv-email').value = email;
+  document.getElementById('nv-phone').value = phone;
+  document.getElementById('nv-cust-results').innerHTML = '<div style="font-size:12px;color:#16a34a">&#10003; Cliente cargado</div>';
+}
+
+async function searchProductForOrder() {
+  const q = document.getElementById('nv-prod-search').value.trim();
+  if (!q) return;
+  const res = await fetch(`${API}/backoffice/catalog?search=${encodeURIComponent(q)}`);
+  const data = await res.json();
+  const prods = (data.products || []).slice(0, 8);
+  const container = document.getElementById('nv-prod-results');
+  if (!prods.length) { container.innerHTML = '<div style="font-size:12px;color:#94a3b8">Sin resultados</div>'; return; }
+  container.innerHTML = prods.map(p => `
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;margin-bottom:5px;font-size:13px">
+      <div style="flex:1"><strong>${esc(p.product_name)}</strong> ${p.presentation?'— '+esc(p.presentation):''} <span style="color:#94a3b8;font-size:11px">${esc(p.sku)}</span></div>
+      <div style="color:#e2001a;font-weight:600">$${fmt(p.price_customer)}</div>
+      <div style="color:#94a3b8;font-size:11px">Stock: ${p.stock}</div>
+      <button class="btn btn-primary btn-sm" onclick='addToCart(${JSON.stringify(p)})'>+ Agregar</button>
+    </div>`).join('');
+}
+
+function addToCart(p) {
+  const existing = nvCart.find(i => i.sku === p.sku);
+  if (existing) { existing.quantity++; }
+  else { nvCart.push({ sku: p.sku, product_name: p.product_name, quantity: 1, unit_price: p.price_customer }); }
+  renderCart();
+}
+
+function removeFromCart(sku) { nvCart = nvCart.filter(i => i.sku !== sku); renderCart(); }
+function changeQty(sku, delta) { const i = nvCart.find(x => x.sku === sku); if (i) { i.quantity = Math.max(1, i.quantity + delta); renderCart(); } }
+
+function renderCart() {
+  const tb = document.getElementById('nv-cart-body');
+  if (!nvCart.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:16px">Carrito vacío</td></tr>'; document.getElementById('nv-cart-total').textContent = 'Total productos: $0.00'; return; }
+  tb.innerHTML = nvCart.map(i => `
+    <tr>
+      <td>${esc(i.product_name)}</td>
+      <td><code style="font-size:11px">${esc(i.sku)}</code></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="changeQty('${i.sku}',-1)">−</button>
+          <span>${i.quantity}</span>
+          <button class="btn btn-secondary btn-sm" onclick="changeQty('${i.sku}',1)">+</button>
+        </div>
+      </td>
+      <td>$${fmt(i.unit_price)}</td>
+      <td><strong>$${fmt(i.unit_price * i.quantity)}</strong></td>
+      <td><button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:none;cursor:pointer" onclick="removeFromCart('${i.sku}')">&#128465;</button></td>
+    </tr>`).join('');
+  const total = nvCart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  document.getElementById('nv-cart-total').textContent = `Total productos: $${fmt(total)}`;
+}
+
+function buildSummary() {
+  const vetId = document.getElementById('nv-vet').value;
+  const v = allVets.find(x => x.vet_id === vetId);
+  const fn = document.getElementById('nv-fname').value;
+  const ln = document.getElementById('nv-lname').value;
+  const em = document.getElementById('nv-email').value;
+  const ph = document.getElementById('nv-phone').value;
+  const dm = document.getElementById('nv-delivery').value;
+  const addr = document.getElementById('nv-address').value;
+  const zone = document.getElementById('nv-zone').value;
+  const pm = document.getElementById('nv-payment').value;
+  const subtotal = nvCart.reduce((s,i) => s + i.unit_price*i.quantity, 0);
+  const total = subtotal + nvShippingCost;
+
+  document.getElementById('nv-summary').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:6px">Veterinaria</div><div>${esc(v?.name||vetId)}</div></div>
+      <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:6px">Cliente</div><div>${esc(fn)} ${esc(ln)}<br><span style="color:#94a3b8">${esc(ph)}<br>${esc(em)}</span></div></div>
+      <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:6px">Entrega</div><div>${dm}${dm==='DELIVERY'?'<br>'+esc(addr)+'<br>'+esc(zone):''}</div></div>
+      <div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:6px">Pago</div><div>${pm}</div></div>
+    </div>
+    <div style="margin-top:16px;border-top:1px solid #e2e8f0;padding-top:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:8px">Productos</div>
+      ${nvCart.map(i => `<div style="display:flex;justify-content:space-between;padding:4px 0">${esc(i.product_name)} (${i.quantity}x) <strong>$${fmt(i.unit_price*i.quantity)}</strong></div>`).join('')}
+      ${nvShippingCost > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;color:#64748b">Envío <strong>$${fmt(nvShippingCost)}</strong></div>` : ''}
+      <div style="display:flex;justify-content:space-between;padding:10px 0 4px;border-top:1px solid #e2e8f0;margin-top:8px;font-size:15px">Total <strong style="color:#e2001a">$${fmt(total)}</strong></div>
+    </div>`;
+}
+
+async function submitOrder() {
+  const vetId = document.getElementById('nv-vet').value;
+  const dm = document.getElementById('nv-delivery').value;
+  const body = {
+    vet_id: vetId,
+    customer_name: document.getElementById('nv-fname').value.trim(),
+    customer_lastname: document.getElementById('nv-lname').value.trim(),
+    customer_email: document.getElementById('nv-email').value.trim(),
+    customer_phone: document.getElementById('nv-phone').value.trim(),
+    delivery_mode: dm,
+    delivery_address: dm === 'DELIVERY' ? document.getElementById('nv-address').value.trim() : null,
+    delivery_zone: dm === 'DELIVERY' ? document.getElementById('nv-zone').value : null,
+    items: nvCart.map(i => ({ sku: i.sku, product_name: i.product_name, quantity: i.quantity, unit_price: i.unit_price })),
+    payment_method: document.getElementById('nv-payment').value,
+  };
+  const btn = document.getElementById('nv-create-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Creando...';
+  try {
+    const res = await fetch(`${API}/backoffice/orders/create`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const data = await res.json();
+    const resultEl = document.getElementById('nv-create-result');
+    resultEl.style.display = 'block';
+    if (res.ok) {
+      resultEl.className = 'result-box success';
+      resultEl.innerHTML = `&#10003; Orden creada: <strong>${data.order_id}</strong> — Total: $${fmt(data.total_amount)} — Estado: ${data.order_status}`;
+    } else {
+      resultEl.className = 'result-box error';
+      resultEl.textContent = data.error || 'Error al crear la orden';
+    }
+  } catch(e) { const r = document.getElementById('nv-create-result'); r.style.display='block'; r.className='result-box error'; r.textContent=e.message; }
+  btn.disabled = false; btn.textContent = '✓ Crear Orden';
+}
+
+// ===================== PAYMENTS =====================
+function populatePayVet() {
+  const sel = document.getElementById('pay-vet');
+  sel.innerHTML = '<option value="">Seleccioná...</option>';
+  allVets.forEach(v => { const o = document.createElement('option'); o.value = v.vet_id; o.textContent = `${v.name}${v.mp_connected?' ✓':''}` ; sel.appendChild(o); });
+}
+
+async function generatePaymentLink() {
+  const vetId = document.getElementById('pay-vet').value;
+  const orderId = document.getElementById('pay-order-id').value.trim();
+  if (!vetId || !orderId) { alert('Completá vet y order ID'); return; }
+  const btn = document.getElementById('pay-gen-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  const res = await fetch(`${API}/backoffice/payment-link`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({vet_id:vetId, order_id:orderId}) });
+  const data = await res.json();
+  const r = document.getElementById('pay-result');
+  r.style.display = 'block';
+  if (res.ok && data.status === 'success') {
+    r.className = 'result-box success';
+    r.innerHTML = `&#10003; <strong>Link generado</strong><br><a href="${esc(data.payment_url)}" target="_blank" style="color:#1d4ed8;word-break:break-all">${esc(data.payment_url)}</a><br><button class="copy-btn" style="margin-top:8px" onclick="copyText('${esc(data.payment_url)}',this)">&#128203; Copiar</button>`;
+  } else { r.className = 'result-box error'; r.textContent = data.message || 'Error'; }
+  btn.disabled = false; btn.innerHTML = '&#128279; Generar link';
+}
+
+async function checkMpStatus() {
+  const orderId = document.getElementById('mp-check-order').value.trim();
+  if (!orderId) { alert('Ingresá un ID de orden'); return; }
+  const btn = document.getElementById('mp-check-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const res = await fetch(`${API}/backoffice/orders/${orderId}/mp-status`);
+    const d = await res.json();
+    const container = document.getElementById('mp-status-result');
+    container.style.display = 'block';
+    if (!res.ok) { document.getElementById('mp-status-grid').innerHTML = `<div style="color:#dc2626;grid-column:1/-1">${d.error || 'Error'}</div>`; btn.disabled=false; btn.textContent='&#128270; Consultar'; return; }
+
+    document.getElementById('mp-status-grid').innerHTML = `
+      <div><div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">Orden</div><div>${esc(d.order_id)}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">Estado Orden</div><div>${statusBadge(d.order_status)}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">MP Payment ID</div><div style="font-size:12px;color:#64748b">${esc(d.mp_payment_id||'—')}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">Estado MP (en vivo)</div><div>${d.mp_live_status ? `<span class="badge ${d.mp_live_status==='approved'?'badge-green':d.mp_live_status==='rejected'?'badge-red':'badge-yellow'}">${esc(d.mp_live_status)}</span> <span style="font-size:11px;color:#94a3b8">${esc(d.mp_live_detail||'')}</span>` : '<span style="color:#94a3b8">'+esc(d.note||'Sin datos')+'</span>'}</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">Total</div><div>$${fmt(d.total_amount)}</div></div>
+      ${d.can_sync ? `<div><div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">Recomendación</div><div>Actualizar a ${statusBadge(d.recommended_status)}</div></div>` : ''}`;
+
+    const syncRow = document.getElementById('mp-sync-row');
+    if (d.can_sync) {
+      syncRow.innerHTML = `<button class="btn btn-success" onclick="syncPayment('${orderId}')">&#8635; Sincronizar estado del pedido con MP</button>`;
+    } else {
+      syncRow.innerHTML = `<span style="font-size:12px;color:#64748b">&#10003; Sin diferencias entre el pedido y MP${d.note?' — '+esc(d.note):''}</span>`;
+    }
+  } catch(e) { document.getElementById('mp-status-grid').innerHTML = `<div style="color:#dc2626;grid-column:1/-1">${e.message}</div>`; }
+  btn.disabled = false; btn.textContent = '&#128270; Consultar';
+}
+
+async function syncPayment(orderId) {
+  const res = await fetch(`${API}/backoffice/orders/${orderId}/sync-payment`, { method:'POST' });
+  const d = await res.json();
+  if (res.ok && d.status === 'synced') { alert(`✓ Sincronizado: orden ahora en ${d.order_status}`); checkMpStatus(); }
+  else alert('Error: ' + (d.error || d.status));
+}
+
+// ===================== CHAT =====================
+function populateChatVet() {
+  const sel = document.getElementById('chatVetSel');
+  sel.innerHTML = '<option value="">-- Seleccioná vet --</option>';
+  allVets.forEach(v => { const o = document.createElement('option'); o.value = JSON.stringify(v); o.textContent = `${v.name} (${v.vet_id})`; sel.appendChild(o); });
+  sel.onchange = () => {
+    if (!sel.value) return;
+    selectedChatVet = JSON.parse(sel.value);
+    document.getElementById('chatVetName').textContent = selectedChatVet.name;
+    document.getElementById('chatVetSub').textContent = `${selectedChatVet.vet_id} | ${selectedChatVet.whatsapp_e164}`;
+    document.getElementById('vetMsgs').innerHTML = `<div class="msg agent"><div>Conectado como <strong>${esc(selectedChatVet.name)}</strong>. Empezá a chatear!</div></div>`;
+  };
+}
+
+function chatKey(e, type) { if (e.key === 'Enter') chatSend(type); }
+
+async function chatSend(type) {
+  const inputId = type === 'vet' ? 'vetChatInput' : 'clientChatInput';
+  const msgsId = type === 'vet' ? 'vetMsgs' : 'clientMsgs';
+  const btnId = type === 'vet' ? 'vetSendBtn' : 'clientSendBtn';
+  const input = document.getElementById(inputId);
+  const msgs = document.getElementById(msgsId);
+  const btn = document.getElementById(btnId);
+  const text = input.value.trim();
+  if (!text) return;
+  if (type === 'vet' && !selectedChatVet) { alert('Seleccioná una vet primero'); return; }
+
+  addMsg(msgs, text, 'user'); input.value = ''; btn.disabled = true;
+  const typingId = showTyping(msgs);
+
+  try {
+    const endpoint = type === 'vet' ? '/backoffice/vet/message' : '/backoffice/client/message';
+    const body = type === 'vet'
+      ? { vet_id: selectedChatVet.vet_id, phone: selectedChatVet.whatsapp_e164, message: text }
+      : { phone: document.getElementById('chatClientPhone').value, message: text };
+    const res = await fetch(endpoint, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const data = await res.json();
+    removeTyping(typingId);
+    addMsg(msgs, data.response || data.error || 'Sin respuesta', 'agent');
+  } catch(e) { removeTyping(typingId); addMsg(msgs, `Error: ${e.message}`, 'agent'); }
+  btn.disabled = false; input.focus();
+}
+
+function addMsg(container, text, type) {
+  const div = document.createElement('div'); div.className = `msg ${type}`;
+  div.innerHTML = `<div>${fmtMsg(text)}</div><div class="msg-time">${tNow()}</div>`;
+  container.appendChild(div); container.scrollTop = container.scrollHeight;
+}
+function fmtMsg(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\n/g,'<br>'); }
+let typingCtr = 0;
+function showTyping(c) { const id=`t${++typingCtr}`; const d=document.createElement('div'); d.className='typing'; d.id=id; d.innerHTML='<span></span><span></span><span></span>'; c.appendChild(d); c.scrollTop=c.scrollHeight; return id; }
+function removeTyping(id) { const el=document.getElementById(id); if(el) el.remove(); }
+function clearChats() {
+  document.getElementById('vetMsgs').innerHTML='<div class="msg agent"><div>Chat limpiado.</div></div>';
+  document.getElementById('clientMsgs').innerHTML='<div class="msg agent"><div>Chat limpiado.</div></div>';
+}
+
+// ===================== OAUTH =====================
+async function loadOauthList() {
+  const container = document.getElementById('oauthList');
+  if (!allVets.length) { container.innerHTML = '<div style="color:#94a3b8;font-size:13px">Sin vets cargadas.</div>'; return; }
+  container.innerHTML = allVets.map(v => `
+    <div class="oauth-item">
+      <div class="oauth-avatar">${v.name.charAt(0).toUpperCase()}</div>
+      <div class="oauth-details">
+        <div class="oauth-name">${esc(v.name)}</div>
+        <div class="oauth-meta">${esc(v.vet_id)} &bull; ${esc(v.whatsapp_e164)}</div>
+      </div>
+      <span class="badge ${v.mp_connected?'badge-blue':'badge-gray'}">${v.mp_connected?'&#10003; MP Conectado':'Sin MP'}</span>
+      <button class="btn btn-secondary btn-sm" id="oauthBtn-${v.vet_id}" onclick="genOAuth('${v.vet_id}')">&#128279; Generar link</button>
+    </div>
+    <div class="oauth-result" id="oauthRes-${v.vet_id}">
+      <div class="oauth-link" id="oauthLink-${v.vet_id}"></div>
+      <button class="copy-btn" onclick="copyText(document.getElementById('oauthLink-${v.vet_id}').textContent, this)">&#128203; Copiar</button>
+    </div>`).join('');
+}
+
+async function genOAuth(vetId) {
+  const btn = document.getElementById(`oauthBtn-${vetId}`);
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  const res = await fetch(`${API}/backoffice/oauth-link/${vetId}`, { method:'POST' });
+  const data = await res.json();
+  if (data.status === 'success') {
+    document.getElementById(`oauthLink-${vetId}`).textContent = data.redirect_url;
+    document.getElementById(`oauthRes-${vetId}`).style.display = 'block';
+  } else alert(data.message || 'Error');
+  btn.disabled = false; btn.innerHTML = '&#128279; Generar link';
+}
+
+// ===================== HELPERS =====================
+function populateVetSelects() {
+  // Filter selects in orders + customers
+  ['custVetFilter','ordVetFilter'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">${id==='custVetFilter'?'Todas las vets':'Todas las vets'}</option>`;
+    allVets.forEach(v => { const o = document.createElement('option'); o.value = v.vet_id; o.textContent = v.name; sel.appendChild(o); });
+    if (cur) sel.value = cur;
+  });
+  // Customer modal vet
+  populateCmVet();
+}
+
+function populateCmVet(selected) {
+  const sel = document.getElementById('cm-vet');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Seleccioná...</option>';
+  allVets.forEach(v => { const o = document.createElement('option'); o.value = v.vet_id; o.textContent = v.name; sel.appendChild(o); });
+  if (selected) sel.value = selected;
+}
+
+function vetName(vetId) { const v = allVets.find(x => x.vet_id === vetId); return v ? v.name : vetId; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmt(n) { return Number(n||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtDate(s) { if(!s) return '—'; try { return new Date(s).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}); } catch(e) { return s; } }
+function tNow() { return new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}); }
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function showResult(id, ok, msg) { const el=document.getElementById(id); el.style.display='block'; el.className=`result-box ${ok?'success':'error'}`; el.textContent=msg; }
+function hideResult(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML; btn.innerHTML = '&#10003; Copiado!'; btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => { o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }); });
+</script>
 </body>
 </html>

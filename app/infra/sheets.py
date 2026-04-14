@@ -1166,3 +1166,336 @@ def get_all_shipping_zones() -> list[dict]:
     except Exception as e:
         logger.error(f"Error getting shipping zones: {e}")
         return []
+
+
+# =============================================================================
+# VETS — CRUD (backoffice)
+# =============================================================================
+
+
+def create_vet(
+    name: str,
+    whatsapp_e164: str,
+    contact_name: Optional[str] = None,
+    address: Optional[str] = None,
+    email: Optional[str] = None,
+    distributor_id: Optional[str] = None,
+) -> Optional[VetContext]:
+    """
+    Crea una nueva veterinaria en el sheet.
+
+    Genera un vet_id único (VET-XXXXXX) y escribe la fila completa.
+    """
+    settings = get_settings()
+    try:
+        import uuid as _uuid
+        vet_id = f"VET-{_uuid.uuid4().hex[:6].upper()}"
+        phone = normalize_phone(whatsapp_e164)
+        now = datetime.utcnow().isoformat()
+
+        ws = get_worksheet(settings.sheet_vets)
+        headers = ws.row_values(1)
+
+        row_dict = {
+            "vet_id": vet_id,
+            "name": name.strip(),
+            "whatsapp_e164": phone,
+            "active": True,
+            "mp_connected": False,
+            "mp_user_id": "",
+            "contact_name": contact_name or "",
+            "address": address or "",
+            "email": email or "",
+            "distributor_id": distributor_id or "",
+            "created_at": now,
+            "updated_at": now,
+        }
+        row = [row_dict.get(h, "") for h in headers]
+        ws.append_row(row, value_input_option="USER_ENTERED")
+
+        logger.info(f"Created vet: {vet_id} — {name}")
+        return VetContext(
+            vet_id=vet_id,
+            name=name.strip(),
+            whatsapp_e164=phone,
+            active=True,
+            mp_connected=False,
+            contact_name=contact_name,
+            address=address,
+            email=email,
+            distributor_id=distributor_id,
+        )
+    except Exception as e:
+        logger.error(f"Error creating vet: {e}")
+        return None
+
+
+def update_vet(
+    vet_id: str,
+    name: Optional[str] = None,
+    whatsapp_e164: Optional[str] = None,
+    active: Optional[bool] = None,
+    contact_name: Optional[str] = None,
+    address: Optional[str] = None,
+    email: Optional[str] = None,
+    distributor_id: Optional[str] = None,
+) -> bool:
+    """
+    Actualiza campos de una veterinaria existente.
+    Solo actualiza los campos que no son None.
+    """
+    settings = get_settings()
+    try:
+        ws = get_worksheet(settings.sheet_vets)
+        records = ws.get_all_records()
+        headers = ws.row_values(1)
+
+        for i, row in enumerate(records, start=2):
+            if str(row.get("vet_id", "")) != vet_id:
+                continue
+
+            updates = {}
+            if name is not None:
+                updates["name"] = name.strip()
+            if whatsapp_e164 is not None:
+                updates["whatsapp_e164"] = normalize_phone(whatsapp_e164)
+            if active is not None:
+                updates["active"] = active
+            if contact_name is not None:
+                updates["contact_name"] = contact_name
+            if address is not None:
+                updates["address"] = address
+            if email is not None:
+                updates["email"] = email
+            if distributor_id is not None:
+                updates["distributor_id"] = distributor_id
+            updates["updated_at"] = datetime.utcnow().isoformat()
+
+            for field, value in updates.items():
+                if field in headers:
+                    col = headers.index(field) + 1
+                    ws.update_cell(i, col, value)
+
+            logger.info(f"Updated vet {vet_id}: {list(updates.keys())}")
+            return True
+
+        logger.warning(f"Vet {vet_id} not found for update")
+        return False
+    except Exception as e:
+        logger.error(f"Error updating vet {vet_id}: {e}")
+        return False
+
+
+# =============================================================================
+# CATALOG — UPSERT (backoffice)
+# =============================================================================
+
+
+def upsert_product(
+    sku: str,
+    product_name: str,
+    price_customer: Decimal,
+    price_distributor: Decimal,
+    stock: int,
+    ean: Optional[str] = None,
+    presentation: Optional[str] = None,
+    description: Optional[str] = None,
+    currency: str = "ARS",
+    active: bool = True,
+) -> dict:
+    """
+    Crea o actualiza un producto en el catálogo por SKU.
+
+    Returns:
+        dict con action ('created' | 'updated') y el product dict.
+    """
+    settings = get_settings()
+    try:
+        ws = get_worksheet(settings.sheet_catalog)
+        records = ws.get_all_records()
+        headers = ws.row_values(1)
+        now = datetime.utcnow().isoformat()
+
+        # Buscar si existe por SKU
+        for i, row in enumerate(records, start=2):
+            if str(row.get("sku", "")).strip().upper() == sku.strip().upper():
+                # UPDATE
+                updates = {
+                    "product_name": product_name.strip(),
+                    "price_customer": float(price_customer),
+                    "price_distributor": float(price_distributor),
+                    "stock": int(stock),
+                    "active": active,
+                    "updated_at": now,
+                }
+                if ean is not None:
+                    updates["ean"] = ean
+                if presentation is not None:
+                    updates["presentation"] = presentation
+                if description is not None:
+                    updates["description"] = description
+
+                for field, value in updates.items():
+                    if field in headers:
+                        col = headers.index(field) + 1
+                        ws.update_cell(i, col, value)
+
+                logger.info(f"Updated product SKU {sku}")
+                return {"action": "updated", "sku": sku}
+
+        # CREATE
+        row_dict = {
+            "sku": sku.strip().upper(),
+            "ean": ean or "",
+            "product_name": product_name.strip(),
+            "presentation": presentation or "",
+            "description": description or "",
+            "price_distributor": float(price_distributor),
+            "price_customer": float(price_customer),
+            "currency": currency,
+            "stock": int(stock),
+            "active": active,
+            "created_at": now,
+            "updated_at": now,
+        }
+        row = [row_dict.get(h, "") for h in headers]
+        ws.append_row(row, value_input_option="USER_ENTERED")
+
+        logger.info(f"Created product SKU {sku}")
+        return {"action": "created", "sku": sku}
+
+    except Exception as e:
+        logger.error(f"Error upserting product {sku}: {e}")
+        return {"action": "error", "error": str(e)}
+
+
+# =============================================================================
+# ORDERS — LIST (backoffice)
+# =============================================================================
+
+
+def get_all_orders(
+    vet_id: Optional[str] = None,
+    status: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = 200,
+) -> list[Order]:
+    """
+    Lista pedidos con filtros opcionales.
+
+    Args:
+        vet_id: Filtrar por veterinaria
+        status: Filtrar por estado (string del enum)
+        search: Buscar en order_id, nombre o email del cliente
+        limit: Máximo de resultados
+
+    Returns:
+        Lista de Order ordenada por fecha desc.
+    """
+    settings = get_settings()
+    try:
+        ws = get_worksheet(settings.sheet_orders)
+        records = ws.get_all_records()
+
+        orders = []
+        search_lower = search.strip().lower() if search else None
+
+        for row in records:
+            try:
+                # Filtro por vet
+                if vet_id and str(row.get("vet_id", "")) != vet_id:
+                    continue
+
+                # Filtro por status
+                if status and str(row.get("status", "")) != status:
+                    continue
+
+                # Filtro por búsqueda libre
+                if search_lower:
+                    searchable = " ".join([
+                        str(row.get("order_id", "")),
+                        str(row.get("customer_name", "")),
+                        str(row.get("customer_lastname", "")),
+                        str(row.get("customer_email", "")),
+                        str(row.get("customer_whatsapp_e164", "")),
+                    ]).lower()
+                    if search_lower not in searchable:
+                        continue
+
+                orders.append(_parse_order_row(row))
+            except Exception as e:
+                logger.warning(f"Error parsing order row: {e}")
+                continue
+
+        orders.sort(key=lambda o: o.created_at, reverse=True)
+        return orders[:limit]
+
+    except Exception as e:
+        logger.error(f"Error listing orders: {e}")
+        return []
+
+
+# =============================================================================
+# CUSTOMERS — LIST ALL (backoffice, sin filtro de vet)
+# =============================================================================
+
+
+def get_all_customers(
+    vet_id: Optional[str] = None,
+    search: Optional[str] = None,
+    limit: int = 500,
+) -> list[Customer]:
+    """
+    Lista clientes con filtros opcionales.
+
+    Args:
+        vet_id: Filtrar por veterinaria (None = todos)
+        search: Buscar en nombre, apellido, email, teléfono
+        limit: Máximo de resultados
+    """
+    settings = get_settings()
+    try:
+        ws = get_worksheet(settings.sheet_customers)
+        records = ws.get_all_records()
+
+        customers = []
+        search_lower = search.strip().lower() if search else None
+
+        for row in records:
+            try:
+                if vet_id and str(row.get("vet_id", "")) != vet_id:
+                    continue
+                if not row.get("active", True):
+                    continue
+
+                if search_lower:
+                    searchable = " ".join([
+                        str(row.get("name", "")),
+                        str(row.get("lastname", "")),
+                        str(row.get("email", "")),
+                        str(row.get("whatsapp_e164", "")),
+                    ]).lower()
+                    if search_lower not in searchable:
+                        continue
+
+                customers.append(Customer(
+                    customer_id=str(row.get("customer_id", "")),
+                    vet_id=str(row.get("vet_id", "")),
+                    name=str(row.get("name", "")),
+                    lastname=str(row.get("lastname", "")),
+                    email=str(row.get("email", "")),
+                    whatsapp_e164=normalize_phone(row.get("whatsapp_e164", "")),
+                    address=str(row.get("address", "")) or None,
+                    pet_type=str(row.get("pet_type", "")) or None,
+                    pet_name=str(row.get("pet_name", "")) or None,
+                    notes=str(row.get("notes", "")) or None,
+                    active=bool(row.get("active", True)),
+                ))
+            except Exception as e:
+                logger.warning(f"Error parsing customer row: {e}")
+                continue
+
+        return customers[:limit]
+    except Exception as e:
+        logger.error(f"Error listing customers: {e}")
+        return []
