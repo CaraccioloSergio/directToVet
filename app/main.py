@@ -1105,6 +1105,42 @@ async def backoffice_sync_payment(
 
 
 # --------------------------------------------------------------------------
+# MANUAL STATUS UPDATE
+# --------------------------------------------------------------------------
+
+class BackofficeStatusUpdateRequest(BaseModel):
+    new_status: str
+
+@app.patch("/backoffice/orders/{order_id}/status")
+async def backoffice_update_order_status(
+    order_id: str,
+    body: BackofficeStatusUpdateRequest,
+    username: str = Depends(_require_backoffice_auth),
+):
+    """
+    Actualiza el estado de un pedido manualmente desde el backoffice.
+    No dispara notificaciones. Valida que el estado sea un valor válido de OrderStatus.
+    """
+    from app.models.schemas import OrderStatus
+
+    try:
+        new_status = OrderStatus(body.new_status)
+    except ValueError:
+        valid = [s.value for s in OrderStatus]
+        return JSONResponse(status_code=400, content={"error": f"Estado inválido. Valores válidos: {valid}"})
+
+    order = get_order_by_id(order_id)
+    if order is None:
+        return JSONResponse(status_code=404, content={"error": "Pedido no encontrado"})
+
+    ok = sheets_update_order_status(order_id, new_status)
+    if not ok:
+        return JSONResponse(status_code=500, content={"error": "Error al actualizar el estado en Sheets"})
+
+    return {"status": "updated", "order_id": order_id, "new_status": new_status.value}
+
+
+# --------------------------------------------------------------------------
 # CHAT (agente — desde backoffice)
 # --------------------------------------------------------------------------
 

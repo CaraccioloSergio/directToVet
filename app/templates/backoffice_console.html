@@ -656,6 +656,41 @@ tbody tr:hover{background:#fafbff}
   </div>
 </div>
 
+<!-- ORDER STATUS MODAL -->
+<div class="modal-overlay" id="statusModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h3>Cambiar Estado de Orden</h3>
+      <button class="modal-close" onclick="closeModal('statusModal')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:#94a3b8;margin-bottom:12px">Orden: <code id="statusModalOrderId"></code></p>
+      <div class="form-group">
+        <label>Nuevo estado</label>
+        <select id="statusModalSelect">
+          <option value="CREATED">CREATED — Creada</option>
+          <option value="PAYMENT_PENDING_MP">PAYMENT_PENDING_MP — Esperando pago MP</option>
+          <option value="PAYMENT_AT_VET">PAYMENT_AT_VET — Pago en mostrador</option>
+          <option value="PAYMENT_APPROVED">PAYMENT_APPROVED — Pago aprobado</option>
+          <option value="PAYMENT_REJECTED">PAYMENT_REJECTED — Pago rechazado</option>
+          <option value="PREPARING">PREPARING — En preparación</option>
+          <option value="READY_FOR_PICKUP">READY_FOR_PICKUP — Listo para retirar</option>
+          <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY — En camino</option>
+          <option value="DELIVERED">DELIVERED — Entregado</option>
+          <option value="COMPLETED">COMPLETED — Completado</option>
+          <option value="CANCELLED">CANCELLED — Cancelado</option>
+        </select>
+      </div>
+      <p style="font-size:11px;color:#f59e0b;margin-top:6px">&#9888; Este cambio no envía notificaciones. Es solo una actualización interna.</p>
+      <div class="result-box" id="statusModalResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('statusModal')">Cancelar</button>
+      <button class="btn btn-primary" id="statusModalBtn" onclick="saveOrderStatus()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== JS ===================== -->
 <script>
 const API = '';
@@ -1044,8 +1079,9 @@ function renderOrders(orders) {
       <td>${statusBadge(o.status)}</td>
       <td>${o.payment_method ? '<span class="badge badge-gray" style="font-size:10px">'+esc(o.payment_method)+'</span>' : '—'}</td>
       <td style="font-size:11px;color:#94a3b8">${fmtDate(o.created_at)}</td>
-      <td>
-        ${o.payment_method==='MERCADOPAGO' ? `<button class="btn btn-secondary btn-sm" onclick="quickMpCheck('${o.order_id}','${o.vet_id}')">MP &#128270;</button>` : ''}
+      <td style="white-space:nowrap">
+        <button class="btn btn-secondary btn-sm" onclick="openStatusModal('${o.order_id}','${o.status}')" title="Cambiar estado">&#9998; Estado</button>
+        ${o.payment_method==='MERCADOPAGO' ? `<button class="btn btn-secondary btn-sm" onclick="quickMpCheck('${o.order_id}','${o.vet_id}')" title="Verificar pago MP">MP &#128270;</button>` : ''}
       </td>
     </tr>`).join('');
 }
@@ -1058,6 +1094,51 @@ function statusBadge(s) {
     COMPLETED:'badge-green', CANCELLED:'badge-red'
   };
   return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
+}
+
+function openStatusModal(orderId, currentStatus) {
+  document.getElementById('statusModalOrderId').textContent = orderId;
+  document.getElementById('statusModalSelect').value = currentStatus;
+  document.getElementById('statusModalResult').style.display = 'none';
+  document.getElementById('statusModalResult').textContent = '';
+  document.getElementById('statusModalBtn').disabled = false;
+  document.getElementById('statusModal').classList.add('active');
+  // Guardamos el orderId en el botón para usarlo al guardar
+  document.getElementById('statusModalBtn').dataset.orderId = orderId;
+}
+
+async function saveOrderStatus() {
+  const orderId = document.getElementById('statusModalBtn').dataset.orderId;
+  const newStatus = document.getElementById('statusModalSelect').value;
+  const btn = document.getElementById('statusModalBtn');
+  const resultBox = document.getElementById('statusModalResult');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const res = await fetch(`${API}/backoffice/orders/${orderId}/status`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({new_status: newStatus})
+    });
+    const data = await res.json();
+    resultBox.style.display = 'block';
+    if (res.ok) {
+      resultBox.style.background = '#f0fdf4';
+      resultBox.style.color = '#15803d';
+      resultBox.textContent = `Estado actualizado a ${data.new_status}`;
+      setTimeout(() => { closeModal('statusModal'); loadOrders(); }, 1000);
+    } else {
+      resultBox.style.background = '#fef2f2';
+      resultBox.style.color = '#dc2626';
+      resultBox.textContent = data.error || 'Error al actualizar';
+      btn.disabled = false; btn.textContent = 'Guardar';
+    }
+  } catch(e) {
+    resultBox.style.display = 'block';
+    resultBox.style.background = '#fef2f2';
+    resultBox.style.color = '#dc2626';
+    resultBox.textContent = 'Error de red';
+    btn.disabled = false; btn.textContent = 'Guardar';
+  }
 }
 
 function quickMpCheck(orderId, vetId) {
