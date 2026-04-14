@@ -1045,7 +1045,7 @@ function renderOrders(orders) {
       <td>${o.payment_method ? '<span class="badge badge-gray" style="font-size:10px">'+esc(o.payment_method)+'</span>' : '—'}</td>
       <td style="font-size:11px;color:#94a3b8">${fmtDate(o.created_at)}</td>
       <td>
-        ${o.payment_method==='MERCADOPAGO' ? `<button class="btn btn-secondary btn-sm" onclick="quickMpCheck('${o.order_id}')">MP &#128270;</button>` : ''}
+        ${o.payment_method==='MERCADOPAGO' ? `<button class="btn btn-secondary btn-sm" onclick="quickMpCheck('${o.order_id}','${o.vet_id}')">MP &#128270;</button>` : ''}
       </td>
     </tr>`).join('');
 }
@@ -1060,9 +1060,16 @@ function statusBadge(s) {
   return `<span class="badge ${map[s]||'badge-gray'}">${s}</span>`;
 }
 
-function quickMpCheck(orderId) {
+function quickMpCheck(orderId, vetId) {
   showSection('payments');
+  // Pre-fill MP status check form
   document.getElementById('mp-check-order').value = orderId;
+  // Pre-fill payment link generator form
+  if (vetId) {
+    const sel = document.getElementById('pay-vet');
+    if (sel) sel.value = vetId;
+  }
+  document.getElementById('pay-order-id').value = orderId;
   setTimeout(checkMpStatus, 200);
 }
 

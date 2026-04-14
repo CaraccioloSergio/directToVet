@@ -1154,12 +1154,13 @@ def get_all_shipping_zones() -> list[dict]:
 
         zones = []
         for row in records:
-            zona = str(row.get("Zona", "")).strip()
-            precio = row.get("Precio", 0)
+            zona = str(row.get("Zona", row.get("zona", ""))).strip()
+            precio_raw = row.get("Precio") or row.get("precio") or row.get("PRECIO") or 0
+            precio = _parse_price(precio_raw)
             if zona:
                 zones.append({
                     "zone": zona,
-                    "price": Decimal(str(precio)),
+                    "price": precio,
                 })
 
         return zones
