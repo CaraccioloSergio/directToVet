@@ -1401,7 +1401,7 @@ async function checkMpStatus() {
     const d = await res.json();
     const container = document.getElementById('mp-status-result');
     container.style.display = 'block';
-    if (!res.ok) { document.getElementById('mp-status-grid').innerHTML = `<div style="color:#dc2626;grid-column:1/-1">${d.error || 'Error'}</div>`; btn.disabled=false; btn.textContent='&#128270; Consultar'; return; }
+    if (!res.ok) { document.getElementById('mp-status-grid').innerHTML = `<div style="color:#dc2626;grid-column:1/-1">${d.error || 'Error'}</div>`; btn.disabled=false; btn.innerHTML='&#128270; Consultar'; return; }
 
     document.getElementById('mp-status-grid').innerHTML = `
       <div><div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase">Orden</div><div>${esc(d.order_id)}</div></div>
