@@ -168,29 +168,6 @@ tbody tr:hover{background:#fafbff}
 .drop-zone p{font-size:13px;color:#64748b;margin-top:8px}
 .drop-zone .drop-icon{font-size:32px}
 
-/* Google Maps PlaceAutocompleteElement — match form input style */
-gmp-place-autocomplete {
-  display: block;
-  width: 100%;
-  --gmpx-font-family-base: inherit;
-  --gmpx-font-size-base: 13px;
-  --gmpx-color-primary: #e2001a;
-}
-gmp-place-autocomplete input {
-  width: 100% !important;
-  padding: 9px 12px !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 7px !important;
-  font-size: 13px !important;
-  color: #1e293b !important;
-  background: #fff !important;
-  box-shadow: none !important;
-  outline: none !important;
-  font-family: inherit !important;
-}
-gmp-place-autocomplete input:focus {
-  border-color: #e2001a !important;
-}
 
 /* Scrollbar */
 ::-webkit-scrollbar{width:5px;height:5px}
@@ -1607,30 +1584,62 @@ function copyText(text, btn) {
 document.querySelectorAll('.modal-overlay').forEach(o => { o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }); });
 </script>
 
-<!-- Google Maps Places Autocomplete (new PlaceAutocompleteElement API) -->
+<!-- Google Maps Places Autocomplete — programmatic, custom dropdown -->
 <script>
 async function initMapsAutocomplete() {
   try {
-    await google.maps.importLibrary('places');
+    const { AutocompleteSuggestion } = await google.maps.importLibrary('places');
 
     function setup(inputId) {
-      const original = document.getElementById(inputId);
-      if (!original) return;
+      const input = document.getElementById(inputId);
+      if (!input) return;
 
-      const pac = new google.maps.places.PlaceAutocompleteElement({
-        componentRestrictions: { country: 'ar' },
-        requestedLanguage: 'es-419',
+      // Create custom dropdown
+      const ul = document.createElement('ul');
+      ul.style.cssText = [
+        'position:absolute','z-index:9999','background:#fff',
+        'border:1px solid #e2e8f0','border-radius:8px',
+        'box-shadow:0 4px 16px rgba(0,0,0,.1)',
+        'list-style:none','margin:2px 0 0','padding:4px 0',
+        'width:100%','display:none','max-height:220px','overflow-y:auto'
+      ].join(';');
+      const wrap = input.parentNode;
+      if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
+      wrap.appendChild(ul);
+
+      let timer;
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        const val = input.value.trim();
+        if (val.length < 3) { ul.style.display = 'none'; return; }
+        timer = setTimeout(async () => {
+          try {
+            const { suggestions } = await AutocompleteSuggestion.fetchAutocompleteSuggestions({
+              input: val, componentRestrictions: { country: 'ar' }, language: 'es-419',
+            });
+            if (!suggestions.length) { ul.style.display = 'none'; return; }
+            ul.innerHTML = suggestions.slice(0, 6).map((s, i) =>
+              `<li data-i="${i}" style="padding:9px 14px;cursor:pointer;font-size:13px;color:#1e293b;border-bottom:1px solid #f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.placePrediction.text.text}</li>`
+            ).join('');
+            ul.style.display = 'block';
+            ul.querySelectorAll('li').forEach(li => {
+              li.addEventListener('mouseenter', () => li.style.background = '#f8fafc');
+              li.addEventListener('mouseleave', () => li.style.background = '');
+              li.addEventListener('mousedown', async e => {
+                e.preventDefault();
+                const idx = +li.dataset.i;
+                const place = suggestions[idx].placePrediction.toPlace();
+                await place.fetchFields({ fields: ['formattedAddress'] });
+                input.value = place.formattedAddress;
+                ul.style.display = 'none';
+              });
+            });
+          } catch { ul.style.display = 'none'; }
+        }, 300);
       });
 
-      // Insert the autocomplete element before the original input and hide it
-      original.parentNode.insertBefore(pac, original);
-      original.style.display = 'none';
-
-      // On place selected: copy formatted address to the hidden original input
-      pac.addEventListener('gmp-placeselect', async ({ placePrediction }) => {
-        const place = placePrediction.toPlace();
-        await place.fetchFields({ fields: ['formattedAddress'] });
-        original.value = place.formattedAddress;
+      document.addEventListener('click', e => {
+        if (!wrap.contains(e.target)) ul.style.display = 'none';
       });
     }
 
