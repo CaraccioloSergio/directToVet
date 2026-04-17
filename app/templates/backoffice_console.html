@@ -1582,5 +1582,46 @@ function copyText(text, btn) {
 // Close modal on overlay click
 document.querySelectorAll('.modal-overlay').forEach(o => { o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); }); });
 </script>
+
+<!-- Google Maps Places Autocomplete -->
+<script>
+function initMapsAutocomplete() {
+  const opts = {
+    componentRestrictions: { country: 'ar' },
+    fields: ['formatted_address'],
+  };
+  // Vet modal
+  const vmAddr = document.getElementById('vm-address');
+  if (vmAddr) {
+    const acVet = new google.maps.places.Autocomplete(vmAddr, opts);
+    acVet.addListener('place_changed', () => {
+      const p = acVet.getPlace();
+      if (p.formatted_address) vmAddr.value = p.formatted_address;
+    });
+  }
+  // Customer modal
+  const cmAddr = document.getElementById('cm-address');
+  if (cmAddr) {
+    const acCust = new google.maps.places.Autocomplete(cmAddr, opts);
+    acCust.addListener('place_changed', () => {
+      const p = acCust.getPlace();
+      if (p.formatted_address) cmAddr.value = p.formatted_address;
+    });
+  }
+  // New order wizard — delivery address
+  const nvAddr = document.getElementById('nv-address');
+  if (nvAddr) {
+    const acOrder = new google.maps.places.Autocomplete(nvAddr, opts);
+    acOrder.addListener('place_changed', () => {
+      const p = acOrder.getPlace();
+      if (p.formatted_address) nvAddr.value = p.formatted_address;
+    });
+  }
+}
+</script>
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAtPBgV4ebyXO9Y-u-ksALmwSARkSAIkP4&libraries=places&callback=initMapsAutocomplete&loading=async"
+  async defer>
+</script>
 </body>
 </html>
