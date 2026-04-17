@@ -168,6 +168,30 @@ tbody tr:hover{background:#fafbff}
 .drop-zone p{font-size:13px;color:#64748b;margin-top:8px}
 .drop-zone .drop-icon{font-size:32px}
 
+/* Google Maps PlaceAutocompleteElement — match form input style */
+gmp-place-autocomplete {
+  display: block;
+  width: 100%;
+  --gmpx-font-family-base: inherit;
+  --gmpx-font-size-base: 13px;
+  --gmpx-color-primary: #e2001a;
+}
+gmp-place-autocomplete input {
+  width: 100% !important;
+  padding: 9px 12px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 7px !important;
+  font-size: 13px !important;
+  color: #1e293b !important;
+  background: #fff !important;
+  box-shadow: none !important;
+  outline: none !important;
+  font-family: inherit !important;
+}
+gmp-place-autocomplete input:focus {
+  border-color: #e2001a !important;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
