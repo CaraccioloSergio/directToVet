@@ -569,6 +569,18 @@ async def backoffice_create_vet(
     body: BackofficeCreateVetRequest,
     username: str = Depends(_require_backoffice_auth),
 ):
+    import phonenumbers as _pn
+    # Validate phone before hitting Sheets
+    try:
+        parsed = _pn.parse(body.whatsapp_e164, "AR")
+        if not _pn.is_valid_number(parsed):
+            raise ValueError()
+    except Exception:
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Teléfono inválido: '{body.whatsapp_e164}'. Usá formato +54911XXXXXXXX"}
+        )
+
     vet = create_vet(
         name=body.name,
         whatsapp_e164=body.whatsapp_e164,
@@ -578,7 +590,7 @@ async def backoffice_create_vet(
         distributor_id=body.distributor_id,
     )
     if vet is None:
-        return JSONResponse(status_code=500, content={"error": "Error al crear la veterinaria"})
+        return JSONResponse(status_code=500, content={"error": "Error al crear la veterinaria. Revisá los logs."})
     return {"status": "created", "vet": vet.model_dump()}
 
 
