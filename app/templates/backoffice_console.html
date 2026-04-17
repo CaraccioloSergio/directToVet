@@ -411,8 +411,8 @@ tbody tr:hover{background:#fafbff}
               </div>
             </div>
             <div class="form-group form-col-2" style="padding-top:4px">
-              <label>Costo de envío</label>
-              <input type="text" id="nv-shipping-display" value="$0.00" readonly style="background:#f8fafc;color:#64748b">
+              <label>Costo de envío <span style="font-size:11px;color:#94a3b8;font-weight:400">(editable)</span></label>
+              <input type="number" id="nv-shipping-display" value="0" min="0" step="0.01" oninput="nvShippingCost = parseFloat(this.value) || 0" style="background:#fff">
             </div>
             <div class="form-group form-col-2">
               <label>Método de pago</label>
@@ -1220,15 +1220,15 @@ function onDeliveryChange() {
   const isDelivery = document.getElementById('nv-delivery').value === 'DELIVERY';
   const df = document.getElementById('delivery-fields');
   df.style.display = isDelivery ? 'block' : 'none';
-  if (!isDelivery) { nvShippingCost = 0; document.getElementById('nv-shipping-display').value = '$0.00'; }
+  if (!isDelivery) { nvShippingCost = 0; document.getElementById('nv-shipping-display').value = '0'; }
 }
 
 async function onZoneChange() {
   const zone = document.getElementById('nv-zone').value;
-  if (!zone) { nvShippingCost = 0; document.getElementById('nv-shipping-display').value = '$0.00'; return; }
+  if (!zone) { nvShippingCost = 0; document.getElementById('nv-shipping-display').value = '0'; return; }
   const found = wizardZones.find(z => z.zone === zone);
-  nvShippingCost = found ? found.price : 0;
-  document.getElementById('nv-shipping-display').value = `$${Number(nvShippingCost).toLocaleString('es-AR')}`;
+  nvShippingCost = found ? Number(found.price) : 0;
+  document.getElementById('nv-shipping-display').value = nvShippingCost;
 }
 
 async function searchCustomerForOrder() {
@@ -1282,11 +1282,20 @@ function addToCart(p) {
 
 function removeFromCart(sku) { nvCart = nvCart.filter(i => i.sku !== sku); renderCart(); }
 function changeQty(sku, delta) { const i = nvCart.find(x => x.sku === sku); if (i) { i.quantity = Math.max(1, i.quantity + delta); renderCart(); } }
+function updateCartPrice(idx, value) {
+  const item = nvCart[idx];
+  if (!item) return;
+  item.unit_price = parseFloat(value) || 0;
+  const subEl = document.getElementById(`cart-sub-${idx}`);
+  if (subEl) subEl.textContent = `$${fmt(item.unit_price * item.quantity)}`;
+  const total = nvCart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  document.getElementById('nv-cart-total').textContent = `Total productos: $${fmt(total)}`;
+}
 
 function renderCart() {
   const tb = document.getElementById('nv-cart-body');
   if (!nvCart.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:16px">Carrito vacío</td></tr>'; document.getElementById('nv-cart-total').textContent = 'Total productos: $0.00'; return; }
-  tb.innerHTML = nvCart.map(i => `
+  tb.innerHTML = nvCart.map((i, idx) => `
     <tr>
       <td>${esc(i.product_name)}</td>
       <td><code style="font-size:11px">${esc(i.sku)}</code></td>
@@ -1297,8 +1306,8 @@ function renderCart() {
           <button class="btn btn-secondary btn-sm" onclick="changeQty('${i.sku}',1)">+</button>
         </div>
       </td>
-      <td>$${fmt(i.unit_price)}</td>
-      <td><strong>$${fmt(i.unit_price * i.quantity)}</strong></td>
+      <td><input type="number" value="${i.unit_price}" min="0" step="0.01" style="width:90px;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px" onchange="updateCartPrice(${idx}, this.value)"></td>
+      <td><strong id="cart-sub-${idx}">$${fmt(i.unit_price * i.quantity)}</strong></td>
       <td><button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:none;cursor:pointer" onclick="removeFromCart('${i.sku}')">&#128465;</button></td>
     </tr>`).join('');
   const total = nvCart.reduce((s, i) => s + i.unit_price * i.quantity, 0);
