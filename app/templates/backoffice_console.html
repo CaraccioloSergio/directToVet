@@ -1594,18 +1594,23 @@ async function initMapsAutocomplete() {
       const input = document.getElementById(inputId);
       if (!input) return;
 
-      // Create custom dropdown
+      // Create dropdown appended to body to avoid overflow:auto clipping
       const ul = document.createElement('ul');
       ul.style.cssText = [
-        'position:absolute','z-index:9999','background:#fff',
+        'position:fixed','z-index:99999','background:#fff',
         'border:1px solid #e2e8f0','border-radius:8px',
-        'box-shadow:0 4px 16px rgba(0,0,0,.1)',
-        'list-style:none','margin:2px 0 0','padding:4px 0',
-        'width:100%','display:none','max-height:220px','overflow-y:auto'
+        'box-shadow:0 4px 16px rgba(0,0,0,.15)',
+        'list-style:none','padding:4px 0',
+        'display:none','max-height:220px','overflow-y:auto','min-width:200px'
       ].join(';');
-      const wrap = input.parentNode;
-      if (getComputedStyle(wrap).position === 'static') wrap.style.position = 'relative';
-      wrap.appendChild(ul);
+      document.body.appendChild(ul);
+
+      function positionDropdown() {
+        const r = input.getBoundingClientRect();
+        ul.style.top = (r.bottom + 2) + 'px';
+        ul.style.left = r.left + 'px';
+        ul.style.width = r.width + 'px';
+      }
 
       let timer;
       input.addEventListener('input', () => {
@@ -1621,6 +1626,7 @@ async function initMapsAutocomplete() {
             ul.innerHTML = suggestions.slice(0, 6).map((s, i) =>
               `<li data-i="${i}" style="padding:9px 14px;cursor:pointer;font-size:13px;color:#1e293b;border-bottom:1px solid #f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.placePrediction.text.text}</li>`
             ).join('');
+            positionDropdown();
             ul.style.display = 'block';
             ul.querySelectorAll('li').forEach(li => {
               li.addEventListener('mouseenter', () => li.style.background = '#f8fafc');
@@ -1639,8 +1645,11 @@ async function initMapsAutocomplete() {
       });
 
       document.addEventListener('click', e => {
-        if (!wrap.contains(e.target)) ul.style.display = 'none';
+        if (e.target !== input) ul.style.display = 'none';
       });
+
+      // Hide on scroll or modal close
+      document.addEventListener('scroll', () => ul.style.display = 'none', true);
     }
 
     setup('vm-address');
