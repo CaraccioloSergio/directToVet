@@ -11,7 +11,7 @@ from google.adk.runners import Runner  # type: ignore
 from google.adk.sessions import InMemorySessionService  # type: ignore
 from google.genai import types  # type: ignore
 
-from app.agent.direct_to_vet_agent import root_agent
+from app.agent.direct_to_vet_agent import root_agent, backoffice_agent
 from app.agent.memory import (
     get_session_store,
     generate_session_id,
@@ -329,6 +329,58 @@ async def _send_response(phone_e164: str, text: str) -> bool:
     except Exception as e:
         logger.error(f"Error sending response: {e}")
         return False
+
+
+async def process_backoffice_vet_message(
+    phone_e164: str,
+    vet_id: str,
+    message_text: str,
+) -> str:
+    """
+    Procesa un mensaje enviado desde el backoffice usando el agente con capacidades de admin.
+    NO envía respuesta por WhatsApp — solo retorna el texto para mostrarlo en el panel.
+    """
+    try:
+        from app.tools.identity import identify_role, UserRole
+        role_result = identify_role(phone_e164)
+        vet_context = role_result.get("vet_context", {})
+
+        session_store = get_session_store()
+        session_id = f"backoffice_{vet_id}"
+        session = session_store.get_or_create(session_id, phone_e164)
+        session.set_vet(
+            vet_id=vet_context.get("vet_id", vet_id),
+            name=vet_context.get("name", ""),
+            mp_connected=vet_context.get("mp_connected", False),
+        )
+
+        contact_name = vet_context.get("contact_name") or vet_context.get("name", "Administrador")
+        enriched_message = f"""
+[CONTEXTO DE SESIÓN — BACKOFFICE]
+- Rol: ADMINISTRADOR (backoffice)
+- Veterinaria: {vet_context.get('name', 'N/A')}
+- Contacto: {contact_name}
+- ID: {vet_context.get('vet_id', vet_id)}
+- MP Conectado: {'Sí' if vet_context.get('mp_connected') else 'No'}
+- Fuente: backoffice (tenés permisos de edición de precios)
+
+[MENSAJE]
+{message_text}
+"""
+
+        response = await _run_agent(
+            agent=backoffice_agent,
+            session_id=session_id,
+            user_id=f"backoffice_{vet_id}",
+            message=enriched_message,
+        )
+
+        logger.info(f"Backoffice agent response for vet {vet_id}")
+        return response
+
+    except Exception as e:
+        logger.error(f"Error processing backoffice vet message: {e}")
+        raise
 
 
 # =============================================================================

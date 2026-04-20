@@ -1183,8 +1183,10 @@ async def backoffice_vet_message(
         return JSONResponse(status_code=400, content={"error": "Missing vet_id or message"})
 
     try:
-        from app.agent.router import process_incoming_message
-        response = await process_incoming_message(phone_e164=phone, message_text=message)
+        from app.agent.router import process_backoffice_vet_message
+        response = await process_backoffice_vet_message(
+            phone_e164=phone or "", vet_id=vet_id, message_text=message
+        )
         return {"response": response, "role": "vet"}
     except Exception as e:
         logger.error(f"Backoffice vet message error: {e}")

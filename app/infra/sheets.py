@@ -750,6 +750,61 @@ def update_product_stock(sku: str, new_stock: int) -> bool:
         return False
 
 
+def update_product_price(sku: str, new_price_customer: float, new_price_distributor: float = None) -> bool:
+    """Actualiza el precio de un producto en el catálogo."""
+    settings = get_settings()
+    try:
+        ws = get_worksheet(settings.sheet_catalog)
+        records = ws.get_all_records()
+
+        for i, row in enumerate(records, start=2):
+            if str(row.get("sku", "")) == sku:
+                headers = ws.row_values(1)
+                col_price_customer = headers.index("price_customer") + 1
+                ws.update_cell(i, col_price_customer, new_price_customer)
+
+                if new_price_distributor is not None:
+                    col_price_dist = headers.index("price_distributor") + 1
+                    ws.update_cell(i, col_price_dist, new_price_distributor)
+
+                col_updated = headers.index("updated_at") + 1 if "updated_at" in headers else None
+                if col_updated:
+                    ws.update_cell(i, col_updated, datetime.utcnow().isoformat())
+
+                logger.info(f"Updated price for SKU {sku}: customer=${new_price_customer}")
+                return True
+
+        logger.warning(f"Product {sku} not found for price update")
+        return False
+    except Exception as e:
+        logger.error(f"Error updating product price: {e}")
+        return False
+
+
+def update_shipping_zone_price(zone: str, new_price: float) -> bool:
+    """Actualiza el costo de envío de una zona AMBA."""
+    settings = get_settings()
+    try:
+        ws = get_worksheet(settings.sheet_shipping)
+        records = ws.get_all_records()
+        zone_normalized = zone.strip().lower()
+
+        for i, row in enumerate(records, start=2):
+            zona_sheet = str(row.get("Zona") or row.get("zona") or "").strip().lower()
+            if zona_sheet == zone_normalized:
+                headers = ws.row_values(1)
+                col_precio = headers.index("Precio") + 1 if "Precio" in headers else headers.index("precio") + 1
+                ws.update_cell(i, col_precio, new_price)
+                logger.info(f"Updated shipping cost for zone '{zone}': ${new_price}")
+                return True
+
+        logger.warning(f"Shipping zone '{zone}' not found for price update")
+        return False
+    except Exception as e:
+        logger.error(f"Error updating shipping zone price: {e}")
+        return False
+
+
 # ===========================================
 # ORDERS
 # ===========================================

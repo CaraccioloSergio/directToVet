@@ -15,7 +15,8 @@ from app.tools.customers import search_customer, search_order, register_customer
 from app.tools.oauth_mp import start_mp_oauth, check_mp_connection
 from app.tools.payments import create_payment_link, get_payment_link_for_order
 from app.tools.messaging import send_payment_link_to_customer
-from app.agent.prompts import AGENT_DESCRIPTION, AGENT_INSTRUCTIONS
+from app.tools.admin import update_product_price, update_shipping_cost
+from app.agent.prompts import AGENT_DESCRIPTION, AGENT_INSTRUCTIONS, BACKOFFICE_EXTRA_INSTRUCTIONS
 from app.config import get_settings
 
 settings = get_settings()
@@ -32,46 +33,61 @@ if settings.google_api_key:
 # DEFINICIÓN DEL AGENTE ADK
 # =============================================================================
 
+_VET_TOOLS = [
+    # Identificación
+    identify_veterinarian,
+
+    # Clientes
+    search_customer,
+    register_customer,
+    update_customer_info,
+
+    # Catálogo
+    search_catalog,
+
+    # Carrito
+    add_to_cart,
+    view_cart,
+    clear_cart,
+
+    # Pedidos
+    create_order,
+    get_order_status,
+    cancel_order,
+    search_order,
+    set_payment_method,
+    get_shipping_cost,
+    confirm_at_vet_payment,
+
+    # OAuth Mercado Pago
+    start_mp_oauth,
+    check_mp_connection,
+
+    # Pagos
+    create_payment_link,
+    get_payment_link_for_order,
+
+    # Mensajería
+    send_payment_link_to_customer,
+]
+
+# Agente para WhatsApp (sin tools de administración)
 root_agent = Agent(
     name="direct_to_vet_agent",
     model=settings.gemini_model,
     description=AGENT_DESCRIPTION,
     instruction=AGENT_INSTRUCTIONS,
-    tools=[
-        # Identificación
-        identify_veterinarian,
+    tools=_VET_TOOLS,
+)
 
-        # Clientes
-        search_customer,
-        register_customer,
-        update_customer_info,
-
-        # Catálogo
-        search_catalog,
-
-        # Carrito
-        add_to_cart,
-        view_cart,
-        clear_cart,
-
-        # Pedidos
-        create_order,
-        get_order_status,
-        cancel_order,
-        search_order,
-        set_payment_method,
-        get_shipping_cost,
-        confirm_at_vet_payment,
-
-        # OAuth Mercado Pago
-        start_mp_oauth,
-        check_mp_connection,
-
-        # Pagos
-        create_payment_link,
-        get_payment_link_for_order,
-
-        # Mensajería
-        send_payment_link_to_customer,
+# Agente para backoffice (incluye tools de edición de precios)
+backoffice_agent = Agent(
+    name="direct_to_vet_backoffice_agent",
+    model=settings.gemini_model,
+    description=AGENT_DESCRIPTION,
+    instruction=AGENT_INSTRUCTIONS + BACKOFFICE_EXTRA_INSTRUCTIONS,
+    tools=_VET_TOOLS + [
+        update_product_price,
+        update_shipping_cost,
     ],
 )
