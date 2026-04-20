@@ -154,8 +154,8 @@ def get_all_vets() -> list[VetContext]:
                     vet_id=str(row.get("vet_id", "")),
                     name=str(row.get("name", "")),
                     whatsapp_e164=normalize_phone(row.get("whatsapp_e164", "")),
-                    active=bool(row.get("active", False)),
-                    mp_connected=bool(row.get("mp_connected", False)),
+                    active=_parse_bool(row.get("active", False)),
+                    mp_connected=_parse_bool(row.get("mp_connected", False)),
                     mp_user_id=str(row.get("mp_user_id", "")) or None,
                     # Campos adicionales
                     contact_name=str(row.get("contact_name", "")) or None,
@@ -1137,6 +1137,15 @@ def log_event(
 # =============================================================================
 # COSTO DE ENVÍO
 # =============================================================================
+
+
+def _parse_bool(value) -> bool:
+    """Parsea booleanos de Sheets que pueden venir como bool, 'TRUE'/'FALSE', 1/0."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value != 0
+    return str(value).strip().upper() in ("TRUE", "1", "YES", "SI", "SÍ")
 
 
 def _parse_price(price_value) -> Decimal:
