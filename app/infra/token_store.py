@@ -257,9 +257,11 @@ def get_token_store() -> TokenStore:
     if _token_store is None:
         settings = get_settings()
 
-        if settings.is_production and settings.gcp_project_id:
-            logger.info("Using Secret Manager for token storage")
-            _token_store = SecretManagerTokenStore()
+        import os
+        project_id = settings.gcp_project_id or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        if settings.is_production and project_id:
+            logger.info(f"Using Secret Manager for token storage (project: {project_id})")
+            _token_store = SecretManagerTokenStore(project_id=project_id)
         else:
             logger.info("Using local file for token storage")
             _token_store = LocalTokenStore()
