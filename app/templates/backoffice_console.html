@@ -275,7 +275,8 @@ tbody tr:hover{background:#fafbff}
           <option value="false">Solo inactivos</option>
         </select>
         <div class="toolbar-right">
-          <button class="btn btn-secondary" id="catCopyBtn" onclick="copyCatalogList()" title="Copiar SKU y nombre del listado filtrado">&#128203; Copiar lista</button>
+          <button class="btn btn-secondary" id="catCopyBtn" onclick="copyCatalogList('name')" title="Copiar nombre del listado filtrado">&#128203; Copiar nombres</button>
+          <button class="btn btn-secondary" id="catCopyBtn2" onclick="copyCatalogList('name+pres')" title="Copiar nombre y presentación del listado filtrado">&#128203; Copiar con presentación</button>
           <button class="btn btn-primary" onclick="openProductModal()">+ Producto</button>
           <button class="btn btn-secondary" onclick="openCsvModal()">&#8679; Importar CSV</button>
           <button class="btn btn-secondary" onclick="loadCatalog()">&#8635; Recargar</button>
@@ -957,12 +958,13 @@ async function submitCustomer() {
 let catAllProducts = [];
 
 function _catAnimalType(p) {
+  // "Royal Canin" tiene "canin" en el nombre — no sirve como keyword de perro
+  // Usamos keywords más específicas con word boundaries
   const hay = (p.product_name + ' ' + (p.description || '') + ' ' + (p.presentation || '')).toLowerCase();
-  const isDog = /perro|canine|canin|dog/.test(hay);
-  const isCat = /gato|feline|felin|cat/.test(hay);
+  const isDog = /\bperro\b|\bdog\b|\bcanine\b/.test(hay);
+  const isCat = /\bgato[s]?\b|\bfeline\b|\bfelin\b|\bcat\b/.test(hay);
   if (isDog && !isCat) return 'dog';
   if (isCat && !isDog) return 'cat';
-  if (isDog && isCat) return 'other';
   return 'other';
 }
 
@@ -976,22 +978,7 @@ async function loadCatalog() {
 }
 
 function filterCatalog() {
-  const q = document.getElementById('catSearch').value.trim().toLowerCase();
-  const animal = document.getElementById('catAnimal').value;
-  const activeFilter = document.getElementById('catActive').value;
-
-  let prods = catAllProducts.filter(p => {
-    if (q) {
-      const hay = [p.sku, p.product_name, p.presentation, p.description].join(' ').toLowerCase();
-      if (!q.split(/\s+/).every(w => hay.includes(w))) return false;
-    }
-    if (animal && _catAnimalType(p) !== animal) return false;
-    if (activeFilter === 'true' && !p.active) return false;
-    if (activeFilter === 'false' && p.active) return false;
-    return true;
-  });
-
-  renderCatalog(prods);
+  renderCatalog(_catFilteredProducts());
 }
 
 function renderCatalog(prods) {
@@ -1013,12 +1000,11 @@ function renderCatalog(prods) {
   }).join('');
 }
 
-function copyCatalogList() {
+function _catFilteredProducts() {
   const q = document.getElementById('catSearch').value.trim().toLowerCase();
   const animal = document.getElementById('catAnimal').value;
   const activeFilter = document.getElementById('catActive').value;
-
-  const prods = catAllProducts.filter(p => {
+  return catAllProducts.filter(p => {
     if (q) {
       const hay = [p.sku, p.product_name, p.presentation, p.description].join(' ').toLowerCase();
       if (!q.split(/\s+/).every(w => hay.includes(w))) return false;
@@ -1028,11 +1014,18 @@ function copyCatalogList() {
     if (activeFilter === 'false' && p.active) return false;
     return true;
   });
+}
 
+function copyCatalogList(mode) {
+  const prods = _catFilteredProducts();
   if (!prods.length) return;
-  const text = prods.map(p => `${p.sku} — ${p.product_name}`).join('\n');
+  const text = prods.map(p => {
+    if (mode === 'name+pres') return p.presentation ? `${p.product_name} ${p.presentation}` : p.product_name;
+    return p.product_name;
+  }).join('\n');
+  const btnId = mode === 'name+pres' ? 'catCopyBtn2' : 'catCopyBtn';
   navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('catCopyBtn');
+    const btn = document.getElementById(btnId);
     const orig = btn.innerHTML;
     btn.innerHTML = '&#10003; Copiado!';
     btn.disabled = true;
