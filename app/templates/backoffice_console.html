@@ -1019,10 +1019,10 @@ function _catFilteredProducts() {
 function copyCatalogList(mode) {
   const prods = _catFilteredProducts();
   if (!prods.length) return;
-  const text = prods.map(p => {
-    if (mode === 'name+pres') return p.presentation ? `${p.product_name} ${p.presentation}` : p.product_name;
-    return p.product_name;
-  }).join('\n');
+  const lines = prods.map(p =>
+    mode === 'name+pres' ? (p.presentation ? `${p.product_name} ${p.presentation}` : p.product_name) : p.product_name
+  );
+  const text = [...new Set(lines)].join('\n');
   const btnId = mode === 'name+pres' ? 'catCopyBtn2' : 'catCopyBtn';
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById(btnId);
