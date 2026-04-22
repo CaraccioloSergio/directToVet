@@ -262,8 +262,20 @@ tbody tr:hover{background:#fafbff}
   <div class="section" id="section-catalog">
     <div class="section-body">
       <div class="toolbar">
-        <input class="search-input" id="catSearch" placeholder="&#128269; SKU, nombre, presentación..." oninput="loadCatalog()">
+        <input class="search-input" id="catSearch" placeholder="&#128269; SKU, nombre, presentación, descripción..." oninput="filterCatalog()" style="width:300px">
+        <select class="filter-select" id="catAnimal" onchange="filterCatalog()">
+          <option value="">Todos</option>
+          <option value="dog">Perro</option>
+          <option value="cat">Gato</option>
+          <option value="other">Otro</option>
+        </select>
+        <select class="filter-select" id="catActive" onchange="filterCatalog()">
+          <option value="">Activos e inactivos</option>
+          <option value="true">Solo activos</option>
+          <option value="false">Solo inactivos</option>
+        </select>
         <div class="toolbar-right">
+          <button class="btn btn-secondary" id="catCopyBtn" onclick="copyCatalogList()" title="Copiar SKU y nombre del listado filtrado">&#128203; Copiar lista</button>
           <button class="btn btn-primary" onclick="openProductModal()">+ Producto</button>
           <button class="btn btn-secondary" onclick="openCsvModal()">&#8679; Importar CSV</button>
           <button class="btn btn-secondary" onclick="loadCatalog()">&#8635; Recargar</button>
@@ -272,10 +284,10 @@ tbody tr:hover{background:#fafbff}
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>SKU</th><th>Nombre</th><th>Presentación</th><th>P. Cliente</th><th>P. Distrib.</th><th>Stock</th><th>Activo</th><th>Acciones</th>
+            <th>SKU</th><th>Nombre</th><th>Presentación</th><th>Descripción</th><th>P. Cliente</th><th>P. Distrib.</th><th>Stock</th><th>Activo</th><th>Acciones</th>
           </tr></thead>
           <tbody id="catTableBody">
-            <tr class="empty-row"><td colspan="8">Cargando catálogo...</td></tr>
+            <tr class="empty-row"><td colspan="9">Cargando catálogo...</td></tr>
           </tbody>
         </table>
       </div>
@@ -942,32 +954,90 @@ async function submitCustomer() {
 }
 
 // ===================== CATALOG =====================
+let catAllProducts = [];
+
+function _catAnimalType(p) {
+  const hay = (p.product_name + ' ' + (p.description || '') + ' ' + (p.presentation || '')).toLowerCase();
+  const isDog = /perro|canine|canin|dog/.test(hay);
+  const isCat = /gato|feline|felin|cat/.test(hay);
+  if (isDog && !isCat) return 'dog';
+  if (isCat && !isDog) return 'cat';
+  if (isDog && isCat) return 'other';
+  return 'other';
+}
+
 async function loadCatalog() {
-  const search = document.getElementById('catSearch').value.trim();
-  const params = new URLSearchParams();
-  if (search) params.set('search', search);
-  else params.set('active_only', 'false');
   try {
-    const res = await fetch(`${API}/backoffice/catalog?${params}`);
+    const res = await fetch(`${API}/backoffice/catalog?active_only=false`);
     const data = await res.json();
-    renderCatalog(data.products || []);
+    catAllProducts = data.products || [];
+    filterCatalog();
   } catch(e) { console.error(e); }
+}
+
+function filterCatalog() {
+  const q = document.getElementById('catSearch').value.trim().toLowerCase();
+  const animal = document.getElementById('catAnimal').value;
+  const activeFilter = document.getElementById('catActive').value;
+
+  let prods = catAllProducts.filter(p => {
+    if (q) {
+      const hay = [p.sku, p.product_name, p.presentation, p.description].join(' ').toLowerCase();
+      if (!q.split(/\s+/).every(w => hay.includes(w))) return false;
+    }
+    if (animal && _catAnimalType(p) !== animal) return false;
+    if (activeFilter === 'true' && !p.active) return false;
+    if (activeFilter === 'false' && p.active) return false;
+    return true;
+  });
+
+  renderCatalog(prods);
 }
 
 function renderCatalog(prods) {
   const tb = document.getElementById('catTableBody');
-  if (!prods.length) { tb.innerHTML = '<tr class="empty-row"><td colspan="8">Sin productos</td></tr>'; return; }
-  tb.innerHTML = prods.map(p => `
-    <tr>
+  if (!prods.length) { tb.innerHTML = '<tr class="empty-row"><td colspan="9">Sin productos</td></tr>'; return; }
+  tb.innerHTML = prods.map(p => {
+    const desc = p.description ? `<span title="${esc(p.description)}" style="cursor:default;max-width:200px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle">${esc(p.description)}</span>` : '<span style="color:#94a3b8">—</span>';
+    return `<tr>
       <td><code style="font-size:11px">${esc(p.sku)}</code></td>
       <td>${esc(p.product_name)}</td>
-      <td>${esc(p.presentation)}</td>
+      <td>${esc(p.presentation) || '<span style="color:#94a3b8">—</span>'}</td>
+      <td style="max-width:200px">${desc}</td>
       <td>$${fmt(p.price_customer)}</td>
       <td>$${fmt(p.price_distributor)}</td>
       <td>${p.stock}</td>
       <td>${p.active ? '<span class="badge badge-green">Sí</span>' : '<span class="badge badge-red">No</span>'}</td>
       <td><button class="btn btn-secondary btn-sm" onclick='editProduct(${JSON.stringify(p)})'>Editar</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
+}
+
+function copyCatalogList() {
+  const q = document.getElementById('catSearch').value.trim().toLowerCase();
+  const animal = document.getElementById('catAnimal').value;
+  const activeFilter = document.getElementById('catActive').value;
+
+  const prods = catAllProducts.filter(p => {
+    if (q) {
+      const hay = [p.sku, p.product_name, p.presentation, p.description].join(' ').toLowerCase();
+      if (!q.split(/\s+/).every(w => hay.includes(w))) return false;
+    }
+    if (animal && _catAnimalType(p) !== animal) return false;
+    if (activeFilter === 'true' && !p.active) return false;
+    if (activeFilter === 'false' && p.active) return false;
+    return true;
+  });
+
+  if (!prods.length) return;
+  const text = prods.map(p => `${p.sku} — ${p.product_name}`).join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('catCopyBtn');
+    const orig = btn.innerHTML;
+    btn.innerHTML = '&#10003; Copiado!';
+    btn.disabled = true;
+    setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 2000);
+  });
 }
 
 function openProductModal() {
