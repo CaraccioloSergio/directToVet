@@ -28,6 +28,7 @@ from app.templates import (
     get_payment_error_html,
     get_test_console_html,
     get_backoffice_console_html,
+    get_backoffice_login_html,
 )
 from app.infra.sheets import (
     get_order_by_id,
@@ -511,34 +512,6 @@ _failed_attempts: dict = {}
 _MAX_FAILED_ATTEMPTS = 5
 _BLOCK_DURATION_MINUTES = 15
 
-_LOGIN_PAGE = """<!DOCTYPE html>
-<html><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DirectToVet — Backoffice</title>
-<style>
-  body{{margin:0;font-family:system-ui,sans-serif;background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh}}
-  .card{{background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);padding:40px 40px 32px;width:320px;text-align:center}}
-  .logo{{width:140px;height:140px;object-fit:contain;margin-bottom:16px}}
-  p{{margin:0 0 24px;font-size:13px;color:#64748b}}
-  label{{display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;text-align:left}}
-  input{{width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;margin-bottom:16px;outline:none}}
-  input:focus{{border-color:#e2001a;box-shadow:0 0 0 3px rgba(226,0,26,.1)}}
-  button{{width:100%;padding:10px;background:#e2001a;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}}
-  button:hover{{background:#c8001a}}
-  .error{{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;padding:10px 12px;font-size:13px;margin-bottom:16px;text-align:left}}
-</style></head>
-<body><div class="card">
-  <img src="/static/d2vlogo.png" alt="Direct to Vet" class="logo">
-  <p>Backoffice — acceso restringido</p>
-  {error_block}
-  <form method="post" action="/backoffice/login">
-    <label>Usuario</label>
-    <input type="text" name="username" autocomplete="username" autofocus required>
-    <label>Contraseña</label>
-    <input type="password" name="password" autocomplete="current-password" required>
-    <button type="submit">Ingresar</button>
-  </form>
-</div></body></html>"""
 
 
 def _get_client_ip(request: Request) -> str:
@@ -566,7 +539,7 @@ def _require_backoffice_auth(
 @app.get("/backoffice/login")
 async def backoffice_login_page(error: str = None):
     error_block = f'<div class="error">{error}</div>' if error else ""
-    return HTMLResponse(_LOGIN_PAGE.format(error_block=error_block))
+    return HTMLResponse(get_backoffice_login_html(error_block=error_block))
 
 
 @app.post("/backoffice/login")

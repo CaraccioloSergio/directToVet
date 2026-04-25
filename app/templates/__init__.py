@@ -81,3 +81,8 @@ def get_backoffice_console_html() -> str:
     """Retorna HTML para la consola de backoffice."""
     from app.config import get_settings
     return render_template("backoffice_console.html", maps_api_key=get_settings().google_maps_api_key)
+
+
+def get_backoffice_login_html(error_block: str = "") -> str:
+    """Retorna HTML para la pantalla de login del backoffice."""
+    return render_template("backoffice_login.html", error_block=error_block)
