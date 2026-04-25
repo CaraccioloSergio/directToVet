@@ -500,21 +500,64 @@ async def test_client_message(request: Request):
 
 _basic_security = HTTPBasic()
 
+# Registro de intentos fallidos: {ip: {"count": N, "blocked_until": datetime | None}}
+_failed_attempts: dict = {}
+_MAX_FAILED_ATTEMPTS = 5
+_BLOCK_DURATION_MINUTES = 15
 
-def _require_backoffice_auth(credentials: HTTPBasicCredentials = Depends(_basic_security)):
-    """Dependencia de autenticación básica para el backoffice."""
+
+def _get_client_ip(request: Request) -> str:
+    """Obtiene la IP real del cliente, considerando proxies."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _require_backoffice_auth(request: Request, credentials: HTTPBasicCredentials = Depends(_basic_security)):
+    """Dependencia de autenticación básica para el backoffice con bloqueo por intentos fallidos."""
+    from datetime import datetime, timedelta
+
     if not settings.backoffice_username or not settings.backoffice_password:
         raise HTTPException(status_code=503, detail="Backoffice not configured")
+
+    ip = _get_client_ip(request)
+    now = datetime.utcnow()
+    record = _failed_attempts.get(ip, {"count": 0, "blocked_until": None})
+
+    # Verificar si la IP está bloqueada
+    if record["blocked_until"] and now < record["blocked_until"]:
+        remaining = int((record["blocked_until"] - now).total_seconds() / 60) + 1
+        logger.warning(f"Blocked IP attempted access: {ip} ({remaining} min remaining)")
+        raise HTTPException(
+            status_code=429,
+            detail=f"Demasiados intentos fallidos. Intentá en {remaining} minuto(s).",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
     valid_user = secrets.compare_digest(credentials.username, settings.backoffice_username)
     valid_pass = secrets.compare_digest(credentials.password, settings.backoffice_password)
 
     if not (valid_user and valid_pass):
+        record["count"] += 1
+        if record["count"] >= _MAX_FAILED_ATTEMPTS:
+            record["blocked_until"] = now + timedelta(minutes=_BLOCK_DURATION_MINUTES)
+            record["count"] = 0
+            logger.warning(f"IP blocked after {_MAX_FAILED_ATTEMPTS} failed attempts: {ip}")
+        else:
+            remaining_attempts = _MAX_FAILED_ATTEMPTS - record["count"]
+            logger.warning(f"Failed login attempt from {ip} ({record['count']}/{_MAX_FAILED_ATTEMPTS})")
+        _failed_attempts[ip] = record
         raise HTTPException(
             status_code=401,
             detail="Credenciales incorrectas",
             headers={"WWW-Authenticate": "Basic"},
         )
+
+    # Login exitoso — resetear contador
+    if ip in _failed_attempts:
+        del _failed_attempts[ip]
+
     return credentials.username
 
 
