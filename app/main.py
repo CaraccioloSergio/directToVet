@@ -7,10 +7,9 @@ import logging
 import secrets
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, Depends, HTTPException, Cookie
+from fastapi import FastAPI, Request, Depends, HTTPException, Cookie, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, Response
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -495,10 +494,8 @@ async def test_client_message(request: Request):
 
 
 # =============================================================================
-# BACKOFFICE (protegido con basic auth — disponible en producción)
+# BACKOFFICE (protegido con form login + cookie de sesión)
 # =============================================================================
-
-_basic_security = HTTPBasic(auto_error=False)
 
 # Sesiones activas: {session_token: username}
 _sessions: dict = {}
@@ -510,6 +507,35 @@ _failed_attempts: dict = {}
 _MAX_FAILED_ATTEMPTS = 5
 _BLOCK_DURATION_MINUTES = 15
 
+_LOGIN_PAGE = """<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DirectToVet — Backoffice</title>
+<style>
+  body{{margin:0;font-family:system-ui,sans-serif;background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh}}
+  .card{{background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);padding:40px;width:320px}}
+  h1{{margin:0 0 6px;font-size:20px;color:#0f172a}}
+  p{{margin:0 0 28px;font-size:13px;color:#64748b}}
+  label{{display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px}}
+  input{{width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;margin-bottom:16px;outline:none}}
+  input:focus{{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}}
+  button{{width:100%;padding:10px;background:#6366f1;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer}}
+  button:hover{{background:#4f46e5}}
+  .error{{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;padding:10px 12px;font-size:13px;margin-bottom:16px}}
+</style></head>
+<body><div class="card">
+  <h1>DirectToVet</h1>
+  <p>Backoffice — acceso restringido</p>
+  {error_block}
+  <form method="post" action="/backoffice/login">
+    <label>Usuario</label>
+    <input type="text" name="username" autocomplete="username" autofocus required>
+    <label>Contraseña</label>
+    <input type="password" name="password" autocomplete="current-password" required>
+    <button type="submit">Ingresar</button>
+  </form>
+</div></body></html>"""
+
 
 def _get_client_ip(request: Request) -> str:
     forwarded = request.headers.get("X-Forwarded-For")
@@ -519,46 +545,49 @@ def _get_client_ip(request: Request) -> str:
 
 
 def _require_backoffice_auth(
-    request: Request,
-    credentials: Optional[HTTPBasicCredentials] = Depends(_basic_security),
     dtv_session: Optional[str] = Cookie(default=None),
 ):
-    """
-    Auth del backoffice en dos capas:
-    1. Cookie de sesión válida → acceso directo (sin pedir credenciales)
-    2. Sin cookie → valida Basic Auth, genera cookie de sesión
-    """
-    from datetime import datetime, timedelta
-
+    """Valida cookie de sesión. Si no hay sesión válida, redirige al login."""
     if not settings.backoffice_username or not settings.backoffice_password:
         raise HTTPException(status_code=503, detail="Backoffice not configured")
-
-    # Capa 1: cookie de sesión válida
     if dtv_session and dtv_session in _sessions:
         return _sessions[dtv_session]
+    raise HTTPException(status_code=303, headers={"Location": "/backoffice/login"})
 
-    # Capa 2: Basic Auth con bloqueo por intentos fallidos
+
+# --------------------------------------------------------------------------
+# HTML + LOGIN
+# --------------------------------------------------------------------------
+
+@app.get("/backoffice/login")
+async def backoffice_login_page(error: str = None):
+    error_block = f'<div class="error">{error}</div>' if error else ""
+    return HTMLResponse(_LOGIN_PAGE.format(error_block=error_block))
+
+
+@app.post("/backoffice/login")
+@limiter.limit("10/minute")
+async def backoffice_login_post(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+):
+    from datetime import datetime, timedelta
+
     ip = _get_client_ip(request)
     now = datetime.utcnow()
     record = _failed_attempts.get(ip, {"count": 0, "blocked_until": None})
 
     if record["blocked_until"] and now < record["blocked_until"]:
         remaining = int((record["blocked_until"] - now).total_seconds() / 60) + 1
-        logger.warning(f"Blocked IP attempted access: {ip} ({remaining} min remaining)")
-        raise HTTPException(
-            status_code=429,
-            detail=f"Demasiados intentos fallidos. Intentá en {remaining} minuto(s).",
+        logger.warning(f"Blocked IP attempted login: {ip} ({remaining} min remaining)")
+        return RedirectResponse(
+            url=f"/backoffice/login?error=Demasiados+intentos.+Esperá+{remaining}+minuto(s).",
+            status_code=303,
         )
 
-    if not credentials:
-        raise HTTPException(
-            status_code=401,
-            detail="Autenticación requerida",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-
-    valid_user = secrets.compare_digest(credentials.username, settings.backoffice_username)
-    valid_pass = secrets.compare_digest(credentials.password, settings.backoffice_password)
+    valid_user = secrets.compare_digest(username, settings.backoffice_username or "")
+    valid_pass = secrets.compare_digest(password, settings.backoffice_password or "")
 
     if not (valid_user and valid_pass):
         record["count"] += 1
@@ -569,39 +598,30 @@ def _require_backoffice_auth(
         else:
             logger.warning(f"Failed login attempt from {ip} ({record['count']}/{_MAX_FAILED_ATTEMPTS})")
         _failed_attempts[ip] = record
-        raise HTTPException(
-            status_code=401,
-            detail="Credenciales incorrectas",
-            headers={"WWW-Authenticate": "Basic"},
-        )
+        return RedirectResponse(url="/backoffice/login?error=Credenciales+incorrectas", status_code=303)
 
-    # Login exitoso — resetear intentos fallidos y crear sesión
     if ip in _failed_attempts:
         del _failed_attempts[ip]
 
     session_token = secrets.token_urlsafe(32)
-    _sessions[session_token] = credentials.username
-    request.state.new_session_token = session_token
-    return credentials.username
+    _sessions[session_token] = username
+    logger.info(f"Backoffice login successful: {username} from {ip}")
 
+    response = RedirectResponse(url="/backoffice", status_code=303)
+    response.set_cookie(
+        _SESSION_COOKIE,
+        session_token,
+        httponly=True,
+        samesite="lax",
+        max_age=_SESSION_DURATION_HOURS * 3600,
+    )
+    return response
 
-# --------------------------------------------------------------------------
-# HTML
-# --------------------------------------------------------------------------
 
 @app.get("/backoffice")
 @limiter.limit("20/minute")
 async def backoffice_console(request: Request, username: str = Depends(_require_backoffice_auth)):
-    response = HTMLResponse(content=get_backoffice_console_html())
-    if hasattr(request.state, "new_session_token"):
-        response.set_cookie(
-            _SESSION_COOKIE,
-            request.state.new_session_token,
-            httponly=True,
-            samesite="lax",
-            max_age=_SESSION_DURATION_HOURS * 3600,
-        )
-    return response
+    return HTMLResponse(content=get_backoffice_console_html())
 
 
 @app.get("/backoffice/logout")
@@ -609,7 +629,7 @@ async def backoffice_logout(dtv_session: Optional[str] = Cookie(default=None)):
     """Invalida la sesión activa y redirige al login."""
     if dtv_session and dtv_session in _sessions:
         del _sessions[dtv_session]
-    response = RedirectResponse(url="/backoffice", status_code=302)
+    response = RedirectResponse(url="/backoffice/login", status_code=302)
     response.delete_cookie(_SESSION_COOKIE)
     return response
 
