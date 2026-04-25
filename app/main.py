@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Depends, HTTPException, Cookie, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -94,6 +95,9 @@ app = FastAPI(
 # Rate limiter
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Archivos estáticos
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # CORS (para desarrollo)
 app.add_middleware(
@@ -513,18 +517,18 @@ _LOGIN_PAGE = """<!DOCTYPE html>
 <title>DirectToVet — Backoffice</title>
 <style>
   body{{margin:0;font-family:system-ui,sans-serif;background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh}}
-  .card{{background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);padding:40px;width:320px}}
-  h1{{margin:0 0 6px;font-size:20px;color:#0f172a}}
-  p{{margin:0 0 28px;font-size:13px;color:#64748b}}
-  label{{display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px}}
+  .card{{background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);padding:40px 40px 32px;width:320px;text-align:center}}
+  .logo{{width:140px;height:140px;object-fit:contain;margin-bottom:16px}}
+  p{{margin:0 0 24px;font-size:13px;color:#64748b}}
+  label{{display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;text-align:left}}
   input{{width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:14px;margin-bottom:16px;outline:none}}
-  input:focus{{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.12)}}
-  button{{width:100%;padding:10px;background:#6366f1;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer}}
-  button:hover{{background:#4f46e5}}
-  .error{{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;padding:10px 12px;font-size:13px;margin-bottom:16px}}
+  input:focus{{border-color:#e2001a;box-shadow:0 0 0 3px rgba(226,0,26,.1)}}
+  button{{width:100%;padding:10px;background:#e2001a;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}}
+  button:hover{{background:#c8001a}}
+  .error{{background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;padding:10px 12px;font-size:13px;margin-bottom:16px;text-align:left}}
 </style></head>
 <body><div class="card">
-  <h1>DirectToVet</h1>
+  <img src="/static/d2vlogo.png" alt="Direct to Vet" class="logo">
   <p>Backoffice — acceso restringido</p>
   {error_block}
   <form method="post" action="/backoffice/login">
