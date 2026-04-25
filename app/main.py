@@ -11,6 +11,9 @@ from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.config import get_settings
 from app.webhooks.twilio import router as twilio_router
@@ -54,6 +57,9 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
+# Rate limiter — usa IP del cliente como clave
+limiter = Limiter(key_func=get_remote_address)
+
 
 def _get_wa_number() -> str:
     """Extrae solo los dígitos del número de WhatsApp de Twilio para usar en wa.me links."""
@@ -85,6 +91,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS (para desarrollo)
 app.add_middleware(
@@ -513,7 +523,8 @@ def _require_backoffice_auth(credentials: HTTPBasicCredentials = Depends(_basic_
 # --------------------------------------------------------------------------
 
 @app.get("/backoffice")
-async def backoffice_console(username: str = Depends(_require_backoffice_auth)):
+@limiter.limit("20/minute")
+async def backoffice_console(request: Request, username: str = Depends(_require_backoffice_auth)):
     return HTMLResponse(content=get_backoffice_console_html())
 
 

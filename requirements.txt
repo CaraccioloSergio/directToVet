@@ -34,3 +34,6 @@ google-cloud-secret-manager>=2.18.0
 
 # Utilities
 python-dateutil>=2.8.2
+
+# Rate limiting
+slowapi>=0.1.9

@@ -10,10 +10,14 @@ from typing import Optional
 from fastapi import APIRouter, Request, Response, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.config import get_settings
 from app.agent.router import process_incoming_message
 from app.infra.audio import process_audio_message
+
+limiter = Limiter(key_func=get_remote_address)
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -54,6 +58,7 @@ class TwilioInboundMessage(BaseModel):
 
 
 @router.post("/inbound")
+@limiter.limit("60/minute")
 async def twilio_inbound_webhook(request: Request) -> Response:
     """
     Endpoint para recibir mensajes entrantes de WhatsApp.
