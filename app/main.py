@@ -7,9 +7,9 @@ import logging
 import secrets
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException, Cookie
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -498,40 +498,62 @@ async def test_client_message(request: Request):
 # BACKOFFICE (protegido con basic auth — disponible en producción)
 # =============================================================================
 
-_basic_security = HTTPBasic()
+_basic_security = HTTPBasic(auto_error=False)
 
-# Registro de intentos fallidos: {ip: {"count": N, "blocked_until": datetime | None}}
+# Sesiones activas: {session_token: username}
+_sessions: dict = {}
+_SESSION_COOKIE = "dtv_session"
+_SESSION_DURATION_HOURS = 8
+
+# Intentos fallidos por IP: {ip: {"count": N, "blocked_until": datetime | None}}
 _failed_attempts: dict = {}
 _MAX_FAILED_ATTEMPTS = 5
 _BLOCK_DURATION_MINUTES = 15
 
 
 def _get_client_ip(request: Request) -> str:
-    """Obtiene la IP real del cliente, considerando proxies."""
     forwarded = request.headers.get("X-Forwarded-For")
     if forwarded:
         return forwarded.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
 
-def _require_backoffice_auth(request: Request, credentials: HTTPBasicCredentials = Depends(_basic_security)):
-    """Dependencia de autenticación básica para el backoffice con bloqueo por intentos fallidos."""
+def _require_backoffice_auth(
+    request: Request,
+    credentials: Optional[HTTPBasicCredentials] = Depends(_basic_security),
+    dtv_session: Optional[str] = Cookie(default=None),
+):
+    """
+    Auth del backoffice en dos capas:
+    1. Cookie de sesión válida → acceso directo (sin pedir credenciales)
+    2. Sin cookie → valida Basic Auth, genera cookie de sesión
+    """
     from datetime import datetime, timedelta
 
     if not settings.backoffice_username or not settings.backoffice_password:
         raise HTTPException(status_code=503, detail="Backoffice not configured")
 
+    # Capa 1: cookie de sesión válida
+    if dtv_session and dtv_session in _sessions:
+        return _sessions[dtv_session]
+
+    # Capa 2: Basic Auth con bloqueo por intentos fallidos
     ip = _get_client_ip(request)
     now = datetime.utcnow()
     record = _failed_attempts.get(ip, {"count": 0, "blocked_until": None})
 
-    # Verificar si la IP está bloqueada
     if record["blocked_until"] and now < record["blocked_until"]:
         remaining = int((record["blocked_until"] - now).total_seconds() / 60) + 1
         logger.warning(f"Blocked IP attempted access: {ip} ({remaining} min remaining)")
         raise HTTPException(
             status_code=429,
             detail=f"Demasiados intentos fallidos. Intentá en {remaining} minuto(s).",
+        )
+
+    if not credentials:
+        raise HTTPException(
+            status_code=401,
+            detail="Autenticación requerida",
             headers={"WWW-Authenticate": "Basic"},
         )
 
@@ -545,7 +567,6 @@ def _require_backoffice_auth(request: Request, credentials: HTTPBasicCredentials
             record["count"] = 0
             logger.warning(f"IP blocked after {_MAX_FAILED_ATTEMPTS} failed attempts: {ip}")
         else:
-            remaining_attempts = _MAX_FAILED_ATTEMPTS - record["count"]
             logger.warning(f"Failed login attempt from {ip} ({record['count']}/{_MAX_FAILED_ATTEMPTS})")
         _failed_attempts[ip] = record
         raise HTTPException(
@@ -554,10 +575,13 @@ def _require_backoffice_auth(request: Request, credentials: HTTPBasicCredentials
             headers={"WWW-Authenticate": "Basic"},
         )
 
-    # Login exitoso — resetear contador
+    # Login exitoso — resetear intentos fallidos y crear sesión
     if ip in _failed_attempts:
         del _failed_attempts[ip]
 
+    session_token = secrets.token_urlsafe(32)
+    _sessions[session_token] = credentials.username
+    request.state.new_session_token = session_token
     return credentials.username
 
 
@@ -568,20 +592,26 @@ def _require_backoffice_auth(request: Request, credentials: HTTPBasicCredentials
 @app.get("/backoffice")
 @limiter.limit("20/minute")
 async def backoffice_console(request: Request, username: str = Depends(_require_backoffice_auth)):
-    return HTMLResponse(content=get_backoffice_console_html())
+    response = HTMLResponse(content=get_backoffice_console_html())
+    if hasattr(request.state, "new_session_token"):
+        response.set_cookie(
+            _SESSION_COOKIE,
+            request.state.new_session_token,
+            httponly=True,
+            samesite="lax",
+            max_age=_SESSION_DURATION_HOURS * 3600,
+        )
+    return response
 
 
 @app.get("/backoffice/logout")
-async def backoffice_logout():
-    """
-    Siempre devuelve 401 con WWW-Authenticate para que el browser descarte
-    las credenciales guardadas y muestre el diálogo de login al volver a /backoffice.
-    """
-    return Response(
-        status_code=401,
-        headers={"WWW-Authenticate": 'Basic realm="DirectToVet Backoffice"'},
-        content="Logged out",
-    )
+async def backoffice_logout(dtv_session: Optional[str] = Cookie(default=None)):
+    """Invalida la sesión activa y redirige al login."""
+    if dtv_session and dtv_session in _sessions:
+        del _sessions[dtv_session]
+    response = RedirectResponse(url="/backoffice", status_code=302)
+    response.delete_cookie(_SESSION_COOKIE)
+    return response
 
 
 # --------------------------------------------------------------------------

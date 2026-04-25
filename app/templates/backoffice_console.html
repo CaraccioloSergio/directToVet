@@ -1625,15 +1625,7 @@ function showResult(id, ok, msg) { const el=document.getElementById(id); el.styl
 function hideResult(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
 
 function doLogout() {
-  // fetch() with a custom Authorization header does NOT clear the browser's
-  // cached Basic Auth credentials. XMLHttpRequest with wrong user/pass DOES.
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', '/backoffice/logout', false, '__logout__', '__logout__'); // sync + wrong creds
-    xhr.send();
-  } catch(e) {}
-  // After the 401, navigate to /backoffice — browser will now prompt for login
-  window.location.replace('/backoffice');
+  window.location.replace('/backoffice/logout');
 }
 
 function copyText(text, btn) {
