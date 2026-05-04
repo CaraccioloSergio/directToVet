@@ -4,8 +4,9 @@ Aplicación FastAPI principal de Direct to Vet.
 """
 
 import logging
-import secrets
 from contextlib import asynccontextmanager
+
+import jwt as _jwt
 
 from fastapi import FastAPI, Request, Depends, HTTPException, Cookie, Form
 from fastapi.middleware.cors import CORSMiddleware
@@ -499,19 +500,17 @@ async def test_client_message(request: Request):
 
 
 # =============================================================================
-# BACKOFFICE (protegido con form login + cookie de sesión)
+# BACKOFFICE — auth con usuarios individuales + JWT
 # =============================================================================
 
-# Sesiones activas: {session_token: username}
-_sessions: dict = {}
 _SESSION_COOKIE = "dtv_session"
-_SESSION_DURATION_HOURS = 8
+_JWT_EXPIRY_HOURS = 8
+_JWT_ALGORITHM = "HS256"
 
 # Intentos fallidos por IP: {ip: {"count": N, "blocked_until": datetime | None}}
 _failed_attempts: dict = {}
 _MAX_FAILED_ATTEMPTS = 5
 _BLOCK_DURATION_MINUTES = 15
-
 
 
 def _get_client_ip(request: Request) -> str:
@@ -521,14 +520,43 @@ def _get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def _jwt_secret() -> str:
+    key = settings.jwt_secret_key
+    if not key:
+        logger.warning("JWT_SECRET_KEY no configurada — usando clave temporal insegura")
+        return "dev-insecure-key-change-in-production"
+    return key
+
+
+def _create_jwt(username: str, role: str) -> str:
+    from datetime import datetime, timezone, timedelta
+    payload = {
+        "sub": username,
+        "role": role,
+        "iat": datetime.now(timezone.utc),
+        "exp": datetime.now(timezone.utc) + timedelta(hours=_JWT_EXPIRY_HOURS),
+    }
+    return _jwt.encode(payload, _jwt_secret(), algorithm=_JWT_ALGORITHM)
+
+
+def _verify_jwt(token: str) -> Optional[dict]:
+    try:
+        return _jwt.decode(token, _jwt_secret(), algorithms=[_JWT_ALGORITHM])
+    except _jwt.ExpiredSignatureError:
+        return None
+    except _jwt.InvalidTokenError as e:
+        logger.warning(f"JWT inválido: {e}")
+        return None
+
+
 def _require_backoffice_auth(
     dtv_session: Optional[str] = Cookie(default=None),
 ):
-    """Valida cookie de sesión. Si no hay sesión válida, redirige al login."""
-    if not settings.backoffice_username or not settings.backoffice_password:
-        raise HTTPException(status_code=503, detail="Backoffice not configured")
-    if dtv_session and dtv_session in _sessions:
-        return _sessions[dtv_session]
+    """Verifica JWT en cookie. Si no es válido, redirige al login."""
+    if dtv_session:
+        payload = _verify_jwt(dtv_session)
+        if payload:
+            return payload["sub"]
     raise HTTPException(status_code=303, headers={"Location": "/backoffice/login"})
 
 
@@ -550,6 +578,7 @@ async def backoffice_login_post(
     password: str = Form(...),
 ):
     from datetime import datetime, timedelta
+    from app.infra.user_store import get_user_by_username, verify_password, update_last_login, has_any_user
 
     ip = _get_client_ip(request)
     now = datetime.utcnow()
@@ -563,10 +592,16 @@ async def backoffice_login_post(
             status_code=303,
         )
 
-    valid_user = secrets.compare_digest(username, settings.backoffice_username or "")
-    valid_pass = secrets.compare_digest(password, settings.backoffice_password or "")
+    if not has_any_user():
+        return RedirectResponse(
+            url="/backoffice/login?error=No+hay+usuarios+configurados.+Ejecutá+scripts/create_admin.py",
+            status_code=303,
+        )
 
-    if not (valid_user and valid_pass):
+    user = get_user_by_username(username)
+    valid = user is not None and verify_password(password, user["password_hash"])
+
+    if not valid:
         record["count"] += 1
         if record["count"] >= _MAX_FAILED_ATTEMPTS:
             record["blocked_until"] = now + timedelta(minutes=_BLOCK_DURATION_MINUTES)
@@ -580,17 +615,17 @@ async def backoffice_login_post(
     if ip in _failed_attempts:
         del _failed_attempts[ip]
 
-    session_token = secrets.token_urlsafe(32)
-    _sessions[session_token] = username
-    logger.info(f"Backoffice login successful: {username} from {ip}")
+    update_last_login(username)
+    token = _create_jwt(username, user.get("role", "admin"))
+    logger.info(f"Backoffice login: {username} from {ip}")
 
     response = RedirectResponse(url="/backoffice", status_code=303)
     response.set_cookie(
         _SESSION_COOKIE,
-        session_token,
+        token,
         httponly=True,
         samesite="lax",
-        max_age=_SESSION_DURATION_HOURS * 3600,
+        max_age=_JWT_EXPIRY_HOURS * 3600,
     )
     return response
 
@@ -602,13 +637,52 @@ async def backoffice_console(request: Request, username: str = Depends(_require_
 
 
 @app.get("/backoffice/logout")
-async def backoffice_logout(dtv_session: Optional[str] = Cookie(default=None)):
-    """Invalida la sesión activa y redirige al login."""
-    if dtv_session and dtv_session in _sessions:
-        del _sessions[dtv_session]
+async def backoffice_logout():
+    """Expira la cookie JWT y redirige al login."""
     response = RedirectResponse(url="/backoffice/login", status_code=302)
     response.delete_cookie(_SESSION_COOKIE)
     return response
+
+
+# --------------------------------------------------------------------------
+# USUARIOS
+# --------------------------------------------------------------------------
+
+@app.get("/backoffice/users")
+async def backoffice_list_users(_: str = Depends(_require_backoffice_auth)):
+    from app.infra.user_store import list_users
+    return {"users": list_users()}
+
+
+class BackofficeCreateUserRequest(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: str = "admin"
+
+
+@app.post("/backoffice/users")
+async def backoffice_create_user(
+    body: BackofficeCreateUserRequest,
+    _: str = Depends(_require_backoffice_auth),
+):
+    from app.infra.user_store import create_user
+    result = create_user(body.username, body.email, body.password, body.role)
+    if result["status"] == "error":
+        return JSONResponse(status_code=400, content=result)
+    return result
+
+
+@app.patch("/backoffice/users/{user_id}/deactivate")
+async def backoffice_deactivate_user(
+    user_id: str,
+    _: str = Depends(_require_backoffice_auth),
+):
+    from app.infra.user_store import deactivate_user
+    ok = deactivate_user(user_id)
+    if not ok:
+        return JSONResponse(status_code=404, content={"error": "Usuario no encontrado"})
+    return {"status": "deactivated", "user_id": user_id}
 
 
 # --------------------------------------------------------------------------

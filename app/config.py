@@ -95,6 +95,7 @@ class Settings(BaseSettings):
     backoffice_username: str = ""
     backoffice_password: str = ""
     google_maps_api_key: str = ""
+    jwt_secret_key: str = ""
 
     # ===========================================
     # Google Cloud (prod)
