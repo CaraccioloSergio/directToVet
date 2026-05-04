@@ -1721,7 +1721,7 @@ function openUserModal() {
   ['um-username','um-email','um-password','um-password2'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('um-role').value = 'user';
   document.getElementById('userModalResult').innerHTML = '';
-  document.getElementById('userModal').classList.add('active');
+  document.getElementById('userModal').classList.add('open');
 }
 
 async function saveUser() {
