@@ -195,9 +195,11 @@ tbody tr:hover{background:#fafbff}
     <div class="nav-item" onclick="showSection('payments')"><span class="nav-icon">&#128179;</span> Pagos MP</div>
     <div class="nav-item" onclick="showSection('chat')"><span class="nav-icon">&#128172;</span> Chat Agente</div>
     <div class="nav-item" onclick="showSection('oauth')"><span class="nav-icon">&#128279;</span> Conectar MP</div>
+    <div class="nav-sep" id="nav-sep-users" style="display:none"></div>
+    <div class="nav-item" id="nav-users" onclick="showSection('users')" style="display:none"><span class="nav-icon">&#128101;</span> Usuarios</div>
   </nav>
   <div class="sidebar-footer" style="display:flex;align-items:center;justify-content:space-between">
-    <span>&#128274; Sesión activa</span>
+    <span id="currentUserLabel" style="font-size:11px;color:#64748b"></span>
     <button onclick="doLogout()" style="background:none;border:none;color:#64748b;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:4px" title="Cerrar sesión">&#128682; Salir</button>
   </div>
 </div>
@@ -550,6 +552,28 @@ tbody tr:hover{background:#fafbff}
       </div>
     </div>
   </div>
+  <!-- ===== USUARIOS ===== -->
+  <div class="section" id="section-users">
+    <div class="section-body">
+      <div class="toolbar">
+        <span style="font-size:13px;color:#64748b">Usuarios con acceso al backoffice</span>
+        <div class="toolbar-right">
+          <button class="btn btn-primary" onclick="openUserModal()">+ Nuevo Usuario</button>
+          <button class="btn btn-secondary" onclick="loadUsers()">&#8635; Recargar</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Username</th><th>Email</th><th>Rol</th><th>Estado</th><th>Último login</th><th>Acciones</th>
+          </tr></thead>
+          <tbody id="usersTableBody">
+            <tr class="empty-row"><td colspan="6">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div><!-- /main -->
 
 <!-- ===== MODALS ===== -->
@@ -709,8 +733,39 @@ tbody tr:hover{background:#fafbff}
 </div>
 
 <!-- ===================== JS ===================== -->
+<!-- USER MODAL -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Nuevo Usuario</h3>
+      <button class="modal-close" onclick="closeModal('userModal')">&#215;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Username *</label><input type="text" id="um-username" placeholder="juan.perez"></div>
+        <div class="form-group"><label>Rol</label>
+          <select id="um-role">
+            <option value="user">Usuario</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="form-group form-col-2"><label>Email *</label><input type="email" id="um-email" placeholder="juan@empresa.com"></div>
+        <div class="form-group"><label>Password *</label><input type="password" id="um-password" placeholder="Mínimo 8 caracteres"></div>
+        <div class="form-group"><label>Confirmar *</label><input type="password" id="um-password2" placeholder="Repetir password"></div>
+      </div>
+      <div class="result-box" id="userModalResult"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('userModal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveUser()">Crear Usuario</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = '';
+const CURRENT_USER = '{{current_user}}';
+const CURRENT_ROLE = '{{current_role}}';
 let allVets = [];
 let nvCart = [];
 let nvShippingCost = 0;
@@ -725,13 +780,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('chatClientSub').textContent = this.value || '—';
   });
   setupCsvDrop();
+  // Mostrar sección de usuarios solo para admin
+  if (CURRENT_ROLE === 'admin') {
+    document.getElementById('nav-users').style.display = '';
+    document.getElementById('nav-sep-users').style.display = '';
+  }
+  // Mostrar usuario actual en el footer
+  document.getElementById('currentUserLabel').textContent = '👤 ' + CURRENT_USER;
 });
 
 // ===================== SECTION NAVIGATION =====================
 const sectionTitles = {
   vets:'Veterinarias', customers:'Clientes', catalog:'Catálogo',
   orders:'Órdenes', 'new-order':'Nueva Orden', payments:'Pagos MP',
-  chat:'Chat Agente', oauth:'Conectar MP'
+  chat:'Chat Agente', oauth:'Conectar MP', users:'Usuarios'
 };
 
 function showSection(name) {
@@ -740,9 +802,11 @@ function showSection(name) {
   document.getElementById('section-' + name).classList.add('active');
   document.getElementById('topbarTitle').textContent = sectionTitles[name] || name;
 
+  const navItems = document.querySelectorAll('.nav-item');
   const navMap = {vets:0, customers:1, catalog:2, orders:3, 'new-order':3, payments:4, chat:5, oauth:6};
   const idx = navMap[name];
-  if (idx !== undefined) document.querySelectorAll('.nav-item')[idx].classList.add('active');
+  if (idx !== undefined) navItems[idx].classList.add('active');
+  if (name === 'users') document.getElementById('nav-users').classList.add('active');
 
   // Lazy loads
   if (name === 'customers' && document.getElementById('custTableBody').textContent.includes('Seleccioná')) {
@@ -754,6 +818,7 @@ function showSection(name) {
   if (name === 'payments') populatePayVet();
   if (name === 'oauth') loadOauthList();
   if (name === 'chat') populateChatVet();
+  if (name === 'users') loadUsers();
 }
 
 // ===================== VETS =====================
@@ -1626,6 +1691,65 @@ function hideResult(id) { const el=document.getElementById(id); if(el) el.style.
 
 function doLogout() {
   window.location.replace('/backoffice/logout');
+}
+
+// ===================== USUARIOS =====================
+async function loadUsers() {
+  const tbody = document.getElementById('usersTableBody');
+  tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Cargando...</td></tr>';
+  try {
+    const r = await fetch('/backoffice/users');
+    if (!r.ok) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Error al cargar usuarios.</td></tr>'; return; }
+    const data = await r.json();
+    const users = data.users || [];
+    if (!users.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No hay usuarios.</td></tr>'; return; }
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td><strong>${u.username}</strong></td>
+        <td>${u.email}</td>
+        <td><span style="background:${u.role==='admin'?'#e0e7ff':'#f1f5f9'};color:${u.role==='admin'?'#4338ca':'#475569'};padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600">${u.role}</span></td>
+        <td><span style="color:${u.active?'#16a34a':'#dc2626'};font-weight:600">${u.active?'Activo':'Inactivo'}</span></td>
+        <td style="font-size:12px;color:#64748b">${u.last_login ? new Date(u.last_login).toLocaleString('es-AR') : '—'}</td>
+        <td>
+          ${u.active && u.username !== CURRENT_USER ? `<button class="btn btn-warning btn-sm" onclick="deactivateUser('${u.user_id}','${u.username}')">Desactivar</button>` : '—'}
+        </td>
+      </tr>`).join('');
+  } catch(e) { tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Error de red.</td></tr>'; }
+}
+
+function openUserModal() {
+  ['um-username','um-email','um-password','um-password2'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('um-role').value = 'user';
+  document.getElementById('userModalResult').innerHTML = '';
+  document.getElementById('userModal').classList.add('active');
+}
+
+async function saveUser() {
+  const username = document.getElementById('um-username').value.trim();
+  const email = document.getElementById('um-email').value.trim();
+  const password = document.getElementById('um-password').value;
+  const password2 = document.getElementById('um-password2').value;
+  const role = document.getElementById('um-role').value;
+  const res = document.getElementById('userModalResult');
+  if (!username || !email || !password) { res.innerHTML = '<div class="result-error">Completá todos los campos obligatorios.</div>'; return; }
+  if (password !== password2) { res.innerHTML = '<div class="result-error">Las contraseñas no coinciden.</div>'; return; }
+  if (password.length < 8) { res.innerHTML = '<div class="result-error">La contraseña debe tener al menos 8 caracteres.</div>'; return; }
+  try {
+    const r = await fetch('/backoffice/users', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, email, password, role}) });
+    const data = await r.json();
+    if (!r.ok) { res.innerHTML = `<div class="result-error">${data.message || 'Error al crear usuario.'}</div>`; return; }
+    res.innerHTML = '<div class="result-ok">✓ Usuario creado correctamente.</div>';
+    setTimeout(() => { closeModal('userModal'); loadUsers(); }, 1200);
+  } catch(e) { res.innerHTML = '<div class="result-error">Error de red.</div>'; }
+}
+
+async function deactivateUser(userId, username) {
+  if (!confirm(`¿Desactivar al usuario "${username}"? No podrá iniciar sesión.`)) return;
+  try {
+    const r = await fetch(`/backoffice/users/${userId}/deactivate`, { method:'PATCH' });
+    if (r.ok) loadUsers();
+    else alert('Error al desactivar usuario.');
+  } catch(e) { alert('Error de red.'); }
 }
 
 function copyText(text, btn) {

@@ -77,10 +77,15 @@ def get_test_console_html() -> str:
     return render_template("test_console.html")
 
 
-def get_backoffice_console_html() -> str:
+def get_backoffice_console_html(current_user: str = "", current_role: str = "user") -> str:
     """Retorna HTML para la consola de backoffice."""
     from app.config import get_settings
-    return render_template("backoffice_console.html", maps_api_key=get_settings().google_maps_api_key)
+    return render_template(
+        "backoffice_console.html",
+        maps_api_key=get_settings().google_maps_api_key,
+        current_user=current_user,
+        current_role=current_role,
+    )
 
 
 def get_backoffice_login_html(error_block: str = "") -> str:

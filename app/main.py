@@ -549,15 +549,27 @@ def _verify_jwt(token: str) -> Optional[dict]:
         return None
 
 
-def _require_backoffice_auth(
-    dtv_session: Optional[str] = Cookie(default=None),
-):
-    """Verifica JWT en cookie. Si no es válido, redirige al login."""
+def _decode_session(dtv_session: Optional[str] = Cookie(default=None)) -> Optional[dict]:
+    """Decodifica la cookie JWT. Retorna el payload o None."""
     if dtv_session:
-        payload = _verify_jwt(dtv_session)
-        if payload:
-            return payload["sub"]
-    raise HTTPException(status_code=303, headers={"Location": "/backoffice/login"})
+        return _verify_jwt(dtv_session)
+    return None
+
+
+def _require_backoffice_auth(payload: Optional[dict] = Depends(_decode_session)):
+    """Verifica que haya sesión válida. Redirige al login si no."""
+    if not payload:
+        raise HTTPException(status_code=303, headers={"Location": "/backoffice/login"})
+    return payload["sub"]
+
+
+def _require_admin_auth(payload: Optional[dict] = Depends(_decode_session)):
+    """Verifica sesión válida con rol admin."""
+    if not payload:
+        raise HTTPException(status_code=303, headers={"Location": "/backoffice/login"})
+    if payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Se requiere rol admin")
+    return payload["sub"]
 
 
 # --------------------------------------------------------------------------
@@ -632,8 +644,13 @@ async def backoffice_login_post(
 
 @app.get("/backoffice")
 @limiter.limit("20/minute")
-async def backoffice_console(request: Request, username: str = Depends(_require_backoffice_auth)):
-    return HTMLResponse(content=get_backoffice_console_html())
+async def backoffice_console(request: Request, payload: Optional[dict] = Depends(_decode_session)):
+    if not payload:
+        raise HTTPException(status_code=303, headers={"Location": "/backoffice/login"})
+    return HTMLResponse(content=get_backoffice_console_html(
+        current_user=payload["sub"],
+        current_role=payload.get("role", "user"),
+    ))
 
 
 @app.get("/backoffice/logout")
@@ -649,7 +666,7 @@ async def backoffice_logout():
 # --------------------------------------------------------------------------
 
 @app.get("/backoffice/users")
-async def backoffice_list_users(_: str = Depends(_require_backoffice_auth)):
+async def backoffice_list_users(_: str = Depends(_require_admin_auth)):
     from app.infra.user_store import list_users
     return {"users": list_users()}
 
@@ -658,13 +675,13 @@ class BackofficeCreateUserRequest(BaseModel):
     username: str
     email: str
     password: str
-    role: str = "admin"
+    role: str = "user"
 
 
 @app.post("/backoffice/users")
 async def backoffice_create_user(
     body: BackofficeCreateUserRequest,
-    _: str = Depends(_require_backoffice_auth),
+    _: str = Depends(_require_admin_auth),
 ):
     from app.infra.user_store import create_user
     result = create_user(body.username, body.email, body.password, body.role)
@@ -676,7 +693,7 @@ async def backoffice_create_user(
 @app.patch("/backoffice/users/{user_id}/deactivate")
 async def backoffice_deactivate_user(
     user_id: str,
-    _: str = Depends(_require_backoffice_auth),
+    _: str = Depends(_require_admin_auth),
 ):
     from app.infra.user_store import deactivate_user
     ok = deactivate_user(user_id)
