@@ -12,6 +12,7 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from twilio.request_validator import RequestValidator
 
 from app.config import get_settings
 from app.agent.router import process_incoming_message
@@ -23,6 +24,25 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 router = APIRouter(prefix="/twilio", tags=["Twilio Webhook"])
+
+
+def _validate_twilio_signature(request: Request, form_data: dict) -> bool:
+    """Verifica que el request venga realmente de Twilio usando X-Twilio-Signature."""
+    if not settings.twilio_auth_token:
+        logger.warning("Twilio auth token no configurado — omitiendo validación de firma")
+        return True
+
+    signature = request.headers.get("X-Twilio-Signature", "")
+    if not signature:
+        logger.warning("Request sin X-Twilio-Signature")
+        return False
+
+    url = f"{settings.webhook_base_url}/twilio/inbound"
+    validator = RequestValidator(settings.twilio_auth_token)
+    valid = validator.validate(url, form_data, signature)
+    if not valid:
+        logger.warning(f"Firma Twilio inválida — posible request no autorizado desde {request.client.host if request.client else 'unknown'}")
+    return valid
 
 
 class TwilioInboundMessage(BaseModel):
@@ -82,6 +102,10 @@ async def twilio_inbound_webhook(request: Request) -> Response:
         data = dict(form_data)
 
         logger.info(f"Received Twilio webhook: {data.get('MessageSid', 'unknown')}")
+
+        # Verificar que el request viene de Twilio
+        if not _validate_twilio_signature(request, data):
+            raise HTTPException(status_code=403, detail="Firma inválida")
 
         # Crear objeto de mensaje
         message = TwilioInboundMessage(
